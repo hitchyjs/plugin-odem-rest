@@ -1,27 +1,30 @@
 {
-  "name": "hitchy-plugin-odem-rest",
-  "version": "0.0.3",
-  "description": "common hitchy extension adding support for odem",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha --ui=tdd test/**/*.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/hitchyjs/plugin-odem.git"
-  },
-  "keywords": [
-    "hitchy",
-    "ODM"
-  ],
-  "author": "Thomas Urban",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/hitchyjs/plugin-odem/issues"
-  },
-  "homepage": "https://github.com/hitchyjs/plugin-odem#readme",
-  "dependencies": {
-    "debug": "^3.1.0",
-    "hitchy-odem": "0.*"
-  }
+	"name": "hitchy-plugin-odem-rest",
+	"version": "0.0.3",
+	"description": "common hitchy extension adding support for odem",
+	"main": "index.js",
+	"scripts": {
+		"test": "mocha --ui=tdd test/**/*.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hitchyjs/plugin-odem.git"
+	},
+	"keywords": [
+		"hitchy",
+		"ODM"
+	],
+	"author": "Thomas Urban",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/hitchyjs/plugin-odem/issues"
+	},
+	"homepage": "https://github.com/hitchyjs/plugin-odem#readme",
+	"dependencies": {
+		"debug": "^3.1.0",
+		"hitchy-odem": "0.*"
+	},
+	"peerDependencies": {
+		"hitchy": "0.*"
+	}
 }
