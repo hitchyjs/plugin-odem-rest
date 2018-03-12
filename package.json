@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/hitchyjs/plugin-odem/issues"
   },
-  "homepage": "https://github.com/hitchyjs/plugin-odem#readme"
+  "homepage": "https://github.com/hitchyjs/plugin-odem#readme",
+  "dependencies": {
+    "debug": "^3.1.0",
+    "hitchy-odem": "0.*"
+  }
 }
