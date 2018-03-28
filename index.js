@@ -38,6 +38,16 @@ module.exports = function( options ) {
 	const api = this;
 
 	return {
+		policies: function( options ) {
+			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
+
+			return {
+				[source]: function( req, res, next ) {
+					res.setHeader( "Access-Control-Allow-Origin", "*" );
+					next();
+				}
+			};
+		},
 		blueprints: function( options ) {
 			const { runtime: { models, config } } = this;
 
