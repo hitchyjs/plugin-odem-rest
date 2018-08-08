@@ -26,5 +26,8 @@
 	},
 	"peerDependencies": {
 		"hitchy": "0.*"
+	},
+	"devDependencies": {
+		"hitchy": "0.0.13"
 	}
 }
