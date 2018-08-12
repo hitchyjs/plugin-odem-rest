@@ -1,3 +1,6 @@
 {
-	"role": "odm"
+	"role": "odm-provider",
+	"dependencies": [
+		"odm"
+	]
 }
