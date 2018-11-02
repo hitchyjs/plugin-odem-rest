@@ -228,22 +228,28 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const item = new model();
 
-		const record = ( req.method === "GET" ? req.query : req.body ) || {};
-		const propNames = Object.keys( record );
-		for ( let ni = 0, numNames = propNames.length; ni < numNames; ni++ ) {
-			const propName = propNames[ni];
+		return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
+			.then( record => {
+				if ( record ) {
+					const propNames = Object.keys( record );
+					const numNames = propNames.length;
 
-			item.properties[propName] = record[propName];
-		}
+					for ( let i = 0; i < numNames; i++ ) {
+						const propName = propNames[i];
 
-		return item.save()
-			.then( saved => {
-				Log( "created %s with %s", routeName, saved.uuid );
-				res.json( { uuid: saved.uuid } );
-			} )
-			.catch( error => {
-				Log( "creating %s:", routeName, error );
-				res.status( 500 ).json( { message: error.message } );
+						item.properties[propName] = record[propName];
+					}
+				}
+
+				return item.save()
+					.then( saved => {
+						Log( "created %s with %s", routeName, saved.uuid );
+						res.json( { uuid: saved.uuid } );
+					} )
+					.catch( error => {
+						Log( "creating %s:", routeName, error );
+						res.status( 500 ).json( { message: error.message } );
+					} );
 			} );
 	}
 
@@ -271,14 +277,20 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					return;
 				}
 
-				return item.load()
-					.then( loaded => {
-						const record = ( req.method === "GET" ? req.query : req.body ) || {};
-						const propNames = Object.keys( record );
-						for ( let ni = 0, numNames = propNames.length; ni < numNames; ni++ ) {
-							const propName = propNames[ni];
+				return Promise.all( [
+					item.load(),
+					req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody(),
+				] )
+					.then( ( [ loaded, record ] ) => {
+						if ( record ) {
+							const propNames = Object.keys( record );
+							const numNames = propNames.length;
 
-							loaded.properties[propName] = record[propName];
+							for ( let i = 0; i < numNames; i++ ) {
+								const propName = propNames[i];
+
+								loaded.properties[propName] = record[propName];
+							}
 						}
 
 						return loaded.save()
