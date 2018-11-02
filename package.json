@@ -8,7 +8,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/hitchyjs/plugin-odem.git"
+		"url": "git+https://github.com/hitchyjs/plugin-odem-rest.git"
 	},
 	"keywords": [
 		"hitchy",
@@ -17,9 +17,9 @@
 	"author": "Thomas Urban",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/hitchyjs/plugin-odem/issues"
+		"url": "https://github.com/hitchyjs/plugin-odem-rest/issues"
 	},
-	"homepage": "https://github.com/hitchyjs/plugin-odem#readme",
+	"homepage": "https://github.com/hitchyjs/plugin-odem-rest#readme",
 	"dependencies": {
 		"debug": "^3.1.0",
 		"hitchy-odem": "*"
