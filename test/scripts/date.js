@@ -31,33 +31,39 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
+const HitchyDev = require( "hitchy-server-dev-tools" );
+
 require( "should" );
 require( "should-http" );
-
-const Helper = require( "../_utility" );
-const Tools = require( "hitchy/tools/test" );
 
 
 describe( "model containing just a date", () => {
 	let server;
 
 	before( "starting hitchy server", () => {
-		server = Helper.start( { debug: false } );
-
-		return server;
+		return HitchyDev.start( {
+			extensionFolder: Path.resolve( __dirname, "../.." ),
+			testProjectFolder: Path.resolve( __dirname, "../project" ),
+			options: {
+				debug: false,
+			},
+		} )
+			.then( instance => {
+				server = instance;
+			} );
 	} );
 
-	after( "stopping hitchy server", () => Helper.stop( server ) );
+	after( "stopping hitchy server", () => HitchyDev.stop( server ) );
 
 	it( "is exposed", () => {
-		return Tools.get( "/api/date" )
+		return HitchyDev.query.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 );
 			} );
 	} );
 
 	it( "does not have any record initially", () => {
-		return Tools.get( "/api/date" )
+		return HitchyDev.query.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Array().which.is.empty();
@@ -65,14 +71,14 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "is creating new record", () => {
-		return Tools.put( "/api/date", { someDate: "2018-08-08" } )
+		return HitchyDev.query.put( "/api/date", { someDate: "2018-08-08" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 			} );
 	} );
 
 	it( "lists created record now", () => {
-		return Tools.get( "/api/date" )
+		return HitchyDev.query.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Array().which.is.not.empty();
@@ -83,18 +89,18 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "updates previously created record", () => {
-		return Tools.get( "/api/date" )
+		return HitchyDev.query.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Array().which.is.not.empty();
 
 				const uuid = res.data[0].uuid;
 
-				return Tools.post( "/api/date/" + uuid, { someDate: "2018-09-09" } )
+				return HitchyDev.query.post( "/api/date/" + uuid, { someDate: "2018-09-09" } )
 					.then( res => {
 						res.should.have.status( 200 ).and.be.json();
 
-						return Tools.get( "/api/date" )
+						return HitchyDev.query.get( "/api/date" )
 							.then( res => {
 								res.should.have.status( 200 ).and.be.json();
 								res.data.should.be.an.Array().which.is.not.empty();

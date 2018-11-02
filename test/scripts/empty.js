@@ -31,26 +31,32 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
+const HitchyDev = require( "hitchy-server-dev-tools" );
+
 require( "should" );
 require( "should-http" );
-
-const Helper = require( "../_utility" );
-const Tools = require( "hitchy/tools/test" );
 
 
 describe( "empty model", () => {
 	let server;
 
 	before( "starting hitchy server", () => {
-		server = Helper.start( { debug: false } );
-
-		return server;
+		return HitchyDev.start( {
+			extensionFolder: Path.resolve( __dirname, "../.." ),
+			testProjectFolder: Path.resolve( __dirname, "../project" ),
+			options: {
+				debug: false,
+			},
+		} )
+			.then( instance => {
+				server = instance;
+			} );
 	} );
 
-	after( "stopping hitchy server", () => Helper.stop( server ) );
+	after( "stopping hitchy server", () => HitchyDev.stop( server ) );
 
 	it( "is exposed", () => {
-		return Tools.get( "/api/empty" )
+		return HitchyDev.query.get( "/api/empty" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Array().which.is.empty();
