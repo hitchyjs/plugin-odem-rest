@@ -185,7 +185,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		return model.findByAttribute( attribute, value, operator, offset, limit )
 			.then( matches => {
-				res.json( matches.map( match => match.toObject() ) );
+				const result = matches.map( match => match.toObject() );
+
+				if ( req.headers["x-list-as-array"] ) {
+					res.json( result );
+				} else {
+					res.json( { items: result } );
+				}
 			} )
 			.catch( error => {
 				Log( "querying %s:", routeName, error );
@@ -208,7 +214,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		return model.list( offset, limit, true )
 			.then( matches => {
-				res.json( matches.map( match => match.toObject() ) );
+				const result = matches.map( match => match.toObject() );
+
+				if ( req.headers["x-list-as-array"] ) {
+					res.json( result );
+				} else {
+					res.json( { items: result } );
+				}
 			} )
 			.catch( error => {
 				Log( "listing %s:", routeName, error );
