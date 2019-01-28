@@ -182,15 +182,26 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { offset = 0, limit = Infinity } = req.query;
 		const { attribute, value, operator } = req.params;
+		const meta = req.headers["x-count"] ? {} : null;
 
-		return model.findByAttribute( attribute, value, operator, offset, limit )
+		return model.findByAttribute( attribute, value, operator, offset, limit, meta )
 			.then( matches => {
-				const result = matches.map( match => match.toObject() );
+				const result = {
+					items: matches.map( match => match.toObject() ),
+				};
+
+				if ( meta ) {
+					res.set( "x-count", meta.count );
+				}
 
 				if ( req.headers["x-list-as-array"] ) {
-					res.json( result );
+					res.json( result.items );
 				} else {
-					res.json( { items: result } );
+					if ( meta ) {
+						result.count = meta.count;
+					}
+
+					res.json( result );
 				}
 			} )
 			.catch( error => {
@@ -211,15 +222,26 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		Log( "got request listing all items" );
 
 		const { offset = 0, limit = Infinity } = req.query;
+		const meta = req.headers["x-count"] ? {} : null;
 
-		return model.list( offset, limit, true )
+		return model.list( offset, limit, true, meta )
 			.then( matches => {
-				const result = matches.map( match => match.toObject() );
+				const result = {
+					items: matches.map( match => match.toObject() ),
+				};
+
+				if ( meta ) {
+					res.set( "x-count", meta.count );
+				}
 
 				if ( req.headers["x-list-as-array"] ) {
-					res.json( result );
+					res.json( result.items );
 				} else {
-					res.json( { items: result } );
+					if ( meta ) {
+						result.count = meta.count;
+					}
+
+					res.json( result );
 				}
 			} )
 			.catch( error => {
