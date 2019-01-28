@@ -59,7 +59,7 @@ describe( "empty model", () => {
 		return HitchyDev.query.get( "/api/empty" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
-				res.data.should.be.an.Array().which.is.empty();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.empty();
 			} );
 	} );
 } );
