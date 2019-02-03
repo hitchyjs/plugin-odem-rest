@@ -21,8 +21,8 @@
 	},
 	"homepage": "https://github.com/hitchyjs/plugin-odem-rest#readme",
 	"dependencies": {
-		"debug": "^3.1.0",
-		"hitchy-odem": "*"
+		"debug": "^3.2.6",
+		"hitchy-odem": "0.0.7"
 	},
 	"peerDependencies": {
 		"hitchy": "0.*"
