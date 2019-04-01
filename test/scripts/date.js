@@ -97,7 +97,7 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "is creating new record", () => {
-		return HitchyDev.query.put( "/api/date", { someDate: "2018-08-08" } )
+		return HitchyDev.query.post( "/api/date", { someDate: "2018-08-08" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 			} );
@@ -151,7 +151,7 @@ describe( "model containing just a date", () => {
 
 				const uuid = res.data.items[0].uuid;
 
-				return HitchyDev.query.post( "/api/date/" + uuid, { someDate: "2018-09-09" } )
+				return HitchyDev.query.put( "/api/date/" + uuid, { someDate: "2018-09-09" } )
 					.then( res => {
 						res.should.have.status( 200 ).and.be.json();
 
