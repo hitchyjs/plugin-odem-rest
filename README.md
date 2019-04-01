@@ -81,7 +81,7 @@ The plugin is injecting blueprint routes exposing controllers for common actions
 
 #### Updating Item
 
-* `POST /api/employee/12345678-1234-1234-1234-1234567890ab`  
+* `PUT /api/employee/12345678-1234-1234-1234-1234567890ab`  
   `GET /api/employee/update/12345678-1234-1234-1234-1234567890ab`    
   `GET /api/employee/write/12345678-1234-1234-1234-1234567890ab`  
 
@@ -96,7 +96,7 @@ The plugin is injecting blueprint routes exposing controllers for common actions
 
 #### Creating Item
 
-* `PUT /api/employee`  
+* `POST /api/employee`  
   `GET /api/employee/add`    
   `GET /api/employee/create`  
 

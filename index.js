@@ -104,9 +104,9 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 	routes.set( "SEARCH " + resolve( urlPrefix, routeName ), reqListAll );
 
-	routes.set( "PUT " + resolve( urlPrefix, routeName ), reqCreateItem );
+	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
 
-	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), reqUpdateItem );
+	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqUpdateItem );
 
 	routes.set( "DELETE " + resolve( urlPrefix, routeName, ":uuid" ), reqRemoveItem );
 
