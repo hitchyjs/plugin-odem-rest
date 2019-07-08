@@ -199,7 +199,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 						if( rAtt == null){
 							return -1;
 						}
-						return latt > ratt? sortModification: -sortModification;
+						return lAtt > rAtt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
 				};
 
