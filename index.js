@@ -188,15 +188,15 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			.then( matches => {
 				const result = {
 					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
-						const latt = l[sortBy];
-						const ratt = r[sortBy];
-						if( (latt == null && ratt == null) || latt === ratt ){
+						const lAtt = l[sortBy];
+						const rAtt = r[sortBy];
+						if( (lAtt == null && rAtt == null) || lAtt === rAtt ){
 							return 0;
 						}
-						if( latt == null ){
+						if( lAtt == null ){
 							return 1;
 						}
-						if( ratt == null){
+						if( rAtt == null){
 							return -1;
 						}
 						return latt > ratt? sortModification: -sortModification;
@@ -243,18 +243,18 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			.then( matches => {
 				const result = {
 					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
-						const latt = l[sortBy];
-						const ratt = r[sortBy];
-						if( (latt == null && ratt == null) || latt === ratt  ){
+						const lAtt = l[sortBy];
+						const rAtt = r[sortBy];
+						if( (lAtt == null && rAtt == null) || lAtt === rAtt  ){
 							return 0;
 						}
-						if( latt == null ){
+						if( lAtt == null ){
 							return 1;
 						}
-						if( ratt == null){
+						if( rAtt == null){
 							return -1;
 						}
-						return latt > ratt? sortModification: -sortModification;
+						return lAtt > rAtt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
 				};
 
