@@ -190,7 +190,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
 						const latt = l[sortBy];
 						const ratt = r[sortBy];
-						if( latt == null && ratt == null ){
+						if( (latt == null && ratt == null) || latt === ratt ){
 							return 0;
 						}
 						if( latt == null ){
@@ -198,9 +198,6 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 						}
 						if( ratt == null){
 							return -1;
-						}
-						if(latt === ratt){
-							return 0;
 						}
 						return latt > ratt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
@@ -248,7 +245,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
 						const latt = l[sortBy];
 						const ratt = r[sortBy];
-						if( latt == null && ratt == null ){
+						if( (latt == null && ratt == null) || latt === ratt  ){
 							return 0;
 						}
 						if( latt == null ){
@@ -256,9 +253,6 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 						}
 						if( ratt == null){
 							return -1;
-						}
-						if(latt === ratt){
-							return 0;
 						}
 						return latt > ratt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
