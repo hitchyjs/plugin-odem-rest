@@ -35,8 +35,6 @@ const Log = require( "debug" )( "plugin-odem" );
 
 
 module.exports = function( options ) {
-	const api = this;
-
 	return {
 		policies: function( options ) {
 			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
@@ -180,14 +178,29 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListMatches( req, res ) {
 		Log( "got request listing matching items" );
 
-		const { offset = 0, limit = Infinity } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = "", descending = false } = req.query;
 		const { attribute, value, operator } = req.params;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		return model.findByAttribute( attribute, value, operator, offset, limit, meta )
+		const sortModification = descending? -1: 1;
+
+		return model.findByAttribute( attribute, value, operator, 0, Infinity, meta )
 			.then( matches => {
 				const result = {
-					items: matches.map( match => match.toObject() ),
+					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
+						const lAtt = l[sortBy];
+						const rAtt = r[sortBy];
+						if( (lAtt == null && rAtt == null) || lAtt === rAtt ){
+							return 0;
+						}
+						if( lAtt == null ){
+							return 1;
+						}
+						if( rAtt == null){
+							return -1;
+						}
+						return lAtt > rAtt? sortModification: -sortModification;
+					}).slice(offset, offset + limit),
 				};
 
 				if ( meta ) {
@@ -221,13 +234,28 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListAll( req, res ) {
 		Log( "got request listing all items" );
 
-		const { offset = 0, limit = Infinity } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		return model.list( offset, limit, true, meta )
+		const sortModification = descending? -1: 1;
+
+		return model.list( 0, Infinity, true, meta )
 			.then( matches => {
 				const result = {
-					items: matches.map( match => match.toObject() ),
+					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
+						const lAtt = l[sortBy];
+						const rAtt = r[sortBy];
+						if( (lAtt == null && rAtt == null) || lAtt === rAtt  ){
+							return 0;
+						}
+						if( lAtt == null ){
+							return 1;
+						}
+						if( rAtt == null){
+							return -1;
+						}
+						return lAtt > rAtt? sortModification: -sortModification;
+					}).slice(offset, offset + limit),
 				};
 
 				if ( meta ) {
