@@ -81,7 +81,6 @@ describe( "model containing just a string", () => {
 	it( "provides number of records on demand, too", () => {
 		return HitchyDev.query.get( "/api/string", null, { "x-count": "1" } )
 			.then( res => {
-				console.log(res.data);
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
 				res.data.items.should.be.an.Array().which.is.empty();

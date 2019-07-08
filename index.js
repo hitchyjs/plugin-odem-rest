@@ -194,12 +194,15 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 							return 0;
 						}
 						if( latt == null ){
-							return sortModification;
+							return 1;
 						}
 						if( ratt == null){
-							return -1 * sortModification;
+							return -1;
 						}
-						return latt > ratt? sortModification: -1 * sortModification;
+						if(latt === ratt){
+							return 0;
+						}
+						return latt > ratt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
 				};
 
@@ -254,7 +257,10 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 						if( ratt == null){
 							return -1;
 						}
-						return latt > ratt? sortModification: -1 * sortModification;
+						if(latt === ratt){
+							return 0;
+						}
+						return latt > ratt? sortModification: -sortModification;
 					}).slice(offset, offset + limit),
 				};
 
