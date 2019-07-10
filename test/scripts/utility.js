@@ -72,14 +72,17 @@ describe( "entries can be added", () => {
 			} );
 	} );
 
-	for(let index = 1, length = 30; index < length; index++){
-		it( `is creating new record ${index}`, () => {
-			return HitchyDev.query.post( "/api/string", { someString: `entry no. ${index}` } )
-				.then( res => {
-					res.should.have.status( 200 ).and.be.json();
-				} );
-		} );
-	}
+
+	it( `is creating new 30 new records`, () => {
+		const Promises = new Array(30);
+		for(let index = 1, length = 30; index < length; index++) {
+			Promises[index] = HitchyDev.query.post("/api/string", {someString: `entry no. ${index}`})
+				.then(res => {
+					res.should.have.status(200).and.be.json();
+				});
+		}
+		return Promise.all(Promises);
+	} );
 
 	it( "lists created record now", () => {
 		return HitchyDev.query.get( "/api/string" )
@@ -152,5 +155,79 @@ describe( "entries can be added", () => {
 				should(items[items.length-1].someString).be.null();
 			} );
 	} );
+
+
+	it( `lists correct number of entries if limit is used`, () => {
+		const Promises = new Array(31);
+		for(let limit = 0; limit <= 31; limit++) {
+			Promises[limit] = HitchyDev.query.get(`/api/string?limit=${limit}`)
+				.then(res => {
+					res.should.have.status(200).and.be.json();
+					res.data.should.be.an.Object().which.has.size(1).and.has.property("items").which.is.an.Array();
+
+					res.data.items.length.should.be.equal(limit);
+				});
+		}
+		return Promise.all(Promises);
+	} );
+
+
+
+	it( `lists correct number of entries if limit is used in sorted list`, () => {
+		const Promises = new Array(31);
+		for(let limit = 0; limit <= 31; limit++) {
+			Promises[limit] = HitchyDev.query.get(`/api/string?limit=${limit}&sortBy=someString`)
+				.then(res => {
+					res.should.have.status(200).and.be.json();
+					res.data.should.be.an.Object().which.has.size(1).and.has.property("items").which.is.an.Array();
+
+					res.data.items.length.should.be.equal(limit);
+				});
+		}
+		return Promise.all(Promises);
+	} );
+
+
+
+	it( `lists the correct items if offset is used`, () => {
+		return HitchyDev.query.get( "/api/string?sortBy=someString" )
+			.then(re => {
+				const fullList = re.data.items;
+				const length = fullList.length;
+				let Promises = new Array(length);
+				for( let offset = 0; offset < length; offset++){
+					Promises[offset] = HitchyDev.query.get( `/api/string?sortBy=someString&offset=${offset}` )
+						.then(res => {
+							res.should.have.status( 200 ).and.be.json();
+							res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array();
+
+							should(res.data.items[0].someString).be.equal(fullList[offset].someString);
+							res.data.items[0].uuid.should.be.equal(fullList[offset].uuid);
+						})
+				}
+				return Promise.all(Promises);
+			})
+	});
+
+	it( `lists the correct items if offset and limit is used`, () => {
+		return HitchyDev.query.get( "/api/string?sortBy=someString" )
+			.then(re => {
+				const fullList = re.data.items;
+				const length = fullList.length;
+				let Promises = new Array(length);
+				for( let offset = 0; offset < length-5; offset++){
+					Promises[offset] = HitchyDev.query.get( `/api/string?sortBy=someString&offset=${offset}&limit=5` )
+						.then(res => {
+							res.should.have.status( 200 ).and.be.json();
+							res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length(5);
+
+							should(res.data.items[0].someString).be.equal(fullList[offset].someString);
+							should(res.data.items[res.data.items.length - 1].someString).be.equal(fullList[offset+4].someString);
+							res.data.items[0].uuid.should.be.equal(fullList[offset].uuid);
+						})
+				}
+				return Promise.all(Promises);
+			})
+	})
 
 });
