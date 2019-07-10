@@ -255,7 +255,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 							return -1;
 						}
 						return lAtt > rAtt? sortModification: -sortModification;
-					}).slice(offset, offset + limit),
+					}).slice(Number(offset), Number(offset) + Number(limit)),
 				};
 
 				if ( meta ) {
