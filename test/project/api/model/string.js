@@ -29,7 +29,7 @@
 "use strict";
 
 module.exports = {
-	attributes: {
+	props: {
 		someString: {
 			type: "string",
 		},

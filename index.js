@@ -128,7 +128,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const item = new model( uuid );
 
-		return item.exists
+		return item.$exists
 			.then( exists => {
 				res.json( { exists } );
 			} )
@@ -155,13 +155,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		}
 
 		const item = new model( uuid );
-		if ( !item.exists ) {
+		if ( !item.$exists ) {
 			res.status( 404 ).json( { message: "selected item not found" } );
 			return;
 		}
 
 		return item.load()
-			.then( loaded => res.json( loaded.properties ) )
+			.then( loaded => res.json( loaded.toObject() ) )
 			.catch( error => {
 				Log( "fetching %s:", routeName, error );
 				res.status( 500 ).json( { message: error.message } );
@@ -299,7 +299,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					for ( let i = 0; i < numNames; i++ ) {
 						const propName = propNames[i];
 
-						item.properties[propName] = record[propName];
+						item.$properties[propName] = record[propName];
 					}
 				}
 
@@ -332,7 +332,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		}
 
 		const item = new model( uuid );
-		return item.exists
+		return item.$exists
 			.then( exists => {
 				if ( !exists ) {
 					res.status( 404 ).json( { message: "selected item not found" } );
@@ -351,7 +351,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 							for ( let i = 0; i < numNames; i++ ) {
 								const propName = propNames[i];
 
-								loaded.properties[propName] = record[propName];
+								loaded.$properties[propName] = record[propName];
 							}
 						}
 
@@ -384,7 +384,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		}
 
 		const item = new model( uuid );
-		return item.exists
+		return item.$exists
 			.then( exists => {
 				if ( exists ) {
 					return item.remove()
