@@ -73,7 +73,7 @@ describe( "entries can be added", () => {
 	} );
 
 
-	it( `is creating new 30 new records`, () => {
+	it( `is creating 30 new records`, () => {
 		const Promises = new Array( 30 );
 		for( let index = 1, length = 30; index < length; index++ ) {
 			Promises[index] = HitchyDev.query.post( "/api/string", { someString: `entry no. ${index}` } )
