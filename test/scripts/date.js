@@ -152,16 +152,16 @@ describe( "model containing just a date", () => {
 				const uuid = res.data.items[0].uuid;
 
 				return HitchyDev.query.put( "/api/date/" + uuid, { someDate: "2018-09-09" } )
-					.then( res => {
-						res.should.have.status( 200 ).and.be.json();
+					.then( res2 => {
+						res2.should.have.status( 200 ).and.be.json();
 
 						return HitchyDev.query.get( "/api/date" )
-							.then( res => {
-								res.should.have.status( 200 ).and.be.json();
-								res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
+							.then( res3 => {
+								res3.should.have.status( 200 ).and.be.json();
+								res3.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
-								res.data.items[0].should.have.property( "uuid" ).which.is.equal( uuid );
-								res.data.items[0].someDate.should.match( /^2018-09-09(?:\D|$)/ );
+								res3.data.items[0].should.have.property( "uuid" ).which.is.equal( uuid );
+								res3.data.items[0].someDate.should.match( /^2018-09-09(?:\D|$)/ );
 							} );
 					} );
 			} );

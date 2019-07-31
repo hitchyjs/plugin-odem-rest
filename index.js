@@ -30,13 +30,13 @@
 
 const { posix: { resolve } } = require( "path" );
 
-const { Model, Adapter, MemoryAdapter, String: { kebapToCamel }, Uuid: { ptnUuid } } = require( "hitchy-odem" );
+const { Uuid: { ptnUuid } } = require( "hitchy-odem" );
 const Log = require( "debug" )( "plugin-odem" );
 
 
-module.exports = function( options ) {
+module.exports = function() {
 	return {
-		policies: function( options ) {
+		policies() {
 			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
 
 			return {
@@ -46,7 +46,7 @@ module.exports = function( options ) {
 				}
 			};
 		},
-		blueprints: function( options ) {
+		blueprints() {
 			const { runtime: { models, config } } = this;
 
 			const modelNames = Object.keys( models );
@@ -69,7 +69,8 @@ module.exports = function( options ) {
 /**
  * Adds routes handling common requests related to selected model.
  *
- * @param {Map<string,function(req:IncomingMessage,res:ServerResponse):Promise>} routes maps route patterns into function handling requests matching that pattern
+ * @param {Map<string,function(req:IncomingMessage,res:ServerResponse):Promise>} routes maps
+ *        route patterns into function handling requests matching that pattern
  * @param {string} urlPrefix common prefix to use on every route regarding any model-related processing
  * @param {string} routeName name of model to be used in path name of request
  * @param {Model} model model instance
@@ -123,10 +124,10 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
 			res.status( 400 ).json( { message: "invalid UUID" } );
-			return;
+			return undefined;
 		}
 
-		const item = new model( uuid );
+		const item = new model( uuid ); // eslint-disable-line new-cap
 
 		return item.$exists
 			.then( exists => {
@@ -151,13 +152,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
 			res.status( 400 ).json( { message: "invalid UUID" } );
-			return;
+			return undefined;
 		}
 
-		const item = new model( uuid );
+		const item = new model( uuid ); // eslint-disable-line new-cap
 		if ( !item.$exists ) {
 			res.status( 404 ).json( { message: "selected item not found" } );
-			return;
+			return undefined;
 		}
 
 		return item.load()
@@ -182,25 +183,25 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { attribute, value, operator } = req.params;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		const sortModification = descending? -1: 1;
+		const sortModification = descending ? -1 : 1;
 
 		return model.findByAttribute( attribute, value, operator, 0, Infinity, meta )
 			.then( matches => {
 				const result = {
-					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
+					items: matches.map( match => match.toObject() ).sort( ( l , r ) => {
 						const lAtt = l[sortBy];
 						const rAtt = r[sortBy];
-						if( (lAtt == null && rAtt == null) || lAtt === rAtt ){
+						if( ( lAtt == null && rAtt == null ) || lAtt === rAtt ) {
 							return 0;
 						}
-						if( lAtt == null ){
+						if( lAtt == null ) {
 							return 1;
 						}
-						if( rAtt == null){
+						if( rAtt == null ) {
 							return -1;
 						}
-						return lAtt > rAtt? sortModification: -sortModification;
-					}).slice(Number(offset), Number(offset) + Number(limit)),
+						return lAtt > rAtt ? sortModification : -sortModification;
+					} ).slice( Number( offset ), Number( offset ) + Number( limit ) ),
 				};
 
 				if ( meta ) {
@@ -237,25 +238,25 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		const sortModification = descending? -1: 1;
+		const sortModification = descending ? -1 : 1;
 
 		return model.list( 0, Infinity, true, meta )
 			.then( matches => {
 				const result = {
-					items: matches.map( match => match.toObject() ).sort(( l , r ) => {
+					items: matches.map( match => match.toObject() ).sort( ( l , r ) => {
 						const lAtt = l[sortBy];
 						const rAtt = r[sortBy];
-						if( (lAtt == null && rAtt == null) || lAtt === rAtt  ){
+						if( ( lAtt == null && rAtt == null ) || lAtt === rAtt ) {
 							return 0;
 						}
-						if( lAtt == null ){
+						if( lAtt == null ) {
 							return 1;
 						}
-						if( rAtt == null){
+						if( rAtt == null ) {
 							return -1;
 						}
-						return lAtt > rAtt? sortModification: -sortModification;
-					}).slice(Number(offset), Number(offset) + Number(limit)),
+						return lAtt > rAtt ? sortModification : -sortModification;
+					} ).slice( Number( offset ), Number( offset ) + Number( limit ) ),
 				};
 
 				if ( meta ) {
@@ -288,7 +289,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqCreateItem( req, res ) {
 		Log( "got request creating item" );
 
-		const item = new model();
+		const item = new model(); // eslint-disable-line new-cap
 
 		return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
 			.then( record => {
@@ -328,15 +329,16 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
 			res.status( 400 ).json( { message: "invalid UUID" } );
-			return;
+			return undefined;
 		}
 
-		const item = new model( uuid );
+		const item = new model( uuid ); // eslint-disable-line new-cap
+
 		return item.$exists
 			.then( exists => {
 				if ( !exists ) {
 					res.status( 404 ).json( { message: "selected item not found" } );
-					return;
+					return undefined;
 				}
 
 				return Promise.all( [
@@ -380,10 +382,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
 			res.status( 400 ).json( { message: "invalid UUID" } );
-			return;
+			return undefined;
 		}
 
-		const item = new model( uuid );
+		const item = new model( uuid ); // eslint-disable-line new-cap
+
 		return item.$exists
 			.then( exists => {
 				if ( exists ) {
@@ -397,6 +400,8 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 				Log( "request for removing missing %s ignored", routeName );
 				res.json( { uuid, status: "OK", action: "remove" } );
+
+				return undefined;
 			} );
 	}
 }

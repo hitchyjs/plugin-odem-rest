@@ -59,11 +59,9 @@ module.exports = {
 	 * @returns {Promise} promises Hitchy server stopped
 	 */
 	stop( server ) {
-		if ( !( server instanceof Promise ) ) {
-			server = Promise.resolve( server );
-		}
+		const _server = server instanceof Promise ? server : Promise.resolve( server );
 
-		return server.then( serverInstance => {
+		return _server.then( serverInstance => {
 			return new Promise( resolve => {
 				if ( serverInstance ) {
 					serverInstance.on( "close", resolve );
