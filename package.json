@@ -22,13 +22,13 @@
 	"homepage": "https://github.com/hitchyjs/plugin-odem-rest#readme",
 	"dependencies": {
 		"debug": "^3.2.6",
-		"hitchy-odem": "0.0.7"
+		"hitchy-odem": "0.1.x"
 	},
 	"peerDependencies": {
 		"hitchy": "0.*"
 	},
 	"devDependencies": {
-		"hitchy-server-dev-tools": "*",
+		"hitchy-server-dev-tools": "^0.1.1",
 		"mocha": "^5.2.0",
 		"should": "^13.2.3",
 		"should-http": "^0.1.1"
