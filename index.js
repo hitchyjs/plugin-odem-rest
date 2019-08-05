@@ -77,13 +77,15 @@ module.exports = function() {
  * @returns {void}
  */
 function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
+	// implement non-REST-compliant rules to simplify manual control of data via browser
 	routes.set( "GET " + resolve( urlPrefix, routeName, "create" ), reqCreateItem );
 	routes.set( "GET " + resolve( urlPrefix, routeName, "add" ), reqCreateItem );
 
 	routes.set( "GET " + resolve( urlPrefix, routeName, "has", ":uuid" ), reqCheckItem );
 
-	routes.set( "GET " + resolve( urlPrefix, routeName, "update", ":uuid" ), reqUpdateItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "write", ":uuid" ), reqUpdateItem );
+	routes.set( "GET " + resolve( urlPrefix, routeName, "replace", ":uuid" ), reqReplaceItem );
+	routes.set( "GET " + resolve( urlPrefix, routeName, "update", ":uuid" ), reqModifyItem );
+	routes.set( "GET " + resolve( urlPrefix, routeName, "write", ":uuid" ), reqModifyItem );
 
 	routes.set( "GET " + resolve( urlPrefix, routeName, "remove", ":uuid" ), reqRemoveItem );
 	routes.set( "GET " + resolve( urlPrefix, routeName, "delete", ":uuid" ), reqRemoveItem );
@@ -91,21 +93,18 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	routes.set( "GET " + resolve( urlPrefix, routeName, "get", ":uuid" ), reqFetchItem );
 	routes.set( "GET " + resolve( urlPrefix, routeName, "read", ":uuid" ), reqFetchItem );
 
-	routes.set( "GET " + resolve( urlPrefix, routeName, "find", ":attribute", ":operator", ":value" ), reqListMatches );
+	routes.set( "GET " + resolve( urlPrefix, routeName, "find" ), reqListMatches );
 
+	// here comes the REST-compliant part
+	routes.set( "GET " + resolve( urlPrefix, routeName ), reqFetchItems );
 	routes.set( "GET " + resolve( urlPrefix, routeName, ":uuid" ), reqFetchItem );
-
-	routes.set( "GET " + resolve( urlPrefix, routeName ), reqListAll );
 
 	routes.set( "HEAD " + resolve( urlPrefix, routeName, ":uuid" ), reqCheckItem );
 
-	routes.set( "SEARCH " + resolve( urlPrefix, routeName, ":attribute", ":operator", ":value" ), reqListMatches );
-
-	routes.set( "SEARCH " + resolve( urlPrefix, routeName ), reqListAll );
-
 	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
 
-	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqUpdateItem );
+	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqReplaceItem );
+	routes.set( "PATCH " + resolve( urlPrefix, routeName, ":uuid" ), reqModifyItem );
 
 	routes.set( "DELETE " + resolve( urlPrefix, routeName, ":uuid" ), reqRemoveItem );
 
@@ -170,53 +169,64 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	}
 
 	/**
+	 * Fetches items of a collection optionally required to match some provided
+	 * query.
+	 *
+	 * @param {IncomingMessage} req incoming request
+	 * @param {ServerResponse} res response controller
+	 * @returns {Promise} promises response sent
+	 */
+	function reqFetchItems( req, res ) {
+		if ( req.headers["x-list-as-array"] ) {
+			res.status( 400 ).json( { error: "fetching items as array is deprecated for security reasons" } );
+			return undefined;
+		}
+
+		return ( req.query.query || req.query.q ? reqListMatches : reqListAll )( req, res );
+	}
+
+	/**
 	 * Handles request for listing all items of model.
 	 *
 	 * @param {IncomingMessage} req description of request
 	 * @param {ServerResponse} res API for creating response
-	 * @returns {Promise} promises request processed successfully
+	 * @returns {Promise|undefined} promises request processed successfully
 	 */
 	function reqListMatches( req, res ) {
 		Log( "got request listing matching items" );
 
 		const { offset = 0, limit = Infinity, sortBy = "", descending = false } = req.query;
-		const { attribute, value, operator } = req.params;
+		const query = req.query.query || req.query.q;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		const sortModification = descending ? -1 : 1;
+		if ( !query ) {
+			res.status( 400 ).json( { error: "missing query" } );
+			return undefined;
+		}
 
-		return model.findByAttribute( attribute, value, operator, 0, Infinity, meta )
+		const parsed = /^([^:]+):([^:]+):(.*)$/.exec( query );
+		if ( !parsed ) {
+			res.status( 400 ).json( { error: "invalid query, use query=operation:name:value" } );
+			return undefined;
+		}
+
+		const [ , operation, name, value ] = parsed;
+
+		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, { meta, loadRecords } )
 			.then( matches => {
-				const result = {
-					items: matches.map( match => match.toObject() ).sort( ( l , r ) => {
-						const lAtt = l[sortBy];
-						const rAtt = r[sortBy];
-						if( ( lAtt == null && rAtt == null ) || lAtt === rAtt ) {
-							return 0;
-						}
-						if( lAtt == null ) {
-							return 1;
-						}
-						if( rAtt == null ) {
-							return -1;
-						}
-						return lAtt > rAtt ? sortModification : -sortModification;
-					} ).slice( Number( offset ), Number( offset ) + Number( limit ) ),
-				};
-
 				if ( meta ) {
 					res.set( "x-count", meta.count );
 				}
 
-				if ( req.headers["x-list-as-array"] ) {
-					res.json( result.items );
-				} else {
-					if ( meta ) {
-						result.count = meta.count;
-					}
+				const result = {
+					items: matches,
+				};
 
-					res.json( result );
+				if ( meta ) {
+					result.count = meta.count;
 				}
+
+				res.json( result );
 			} )
 			.catch( error => {
 				Log( "querying %s:", routeName, error );
