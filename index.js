@@ -195,7 +195,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListMatches( req, res ) {
 		Log( "got request listing matching items" );
 
-		const { offset = 0, limit = Infinity, sortBy = "", descending = false } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = "", descending = false, loadRecords = false } = req.query;
 		const query = req.query.query || req.query.q;
 		const meta = req.headers["x-count"] ? {} : null;
 
@@ -212,7 +212,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const [ , operation, name, value ] = parsed;
 
-		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, { meta, loadRecords } )
+		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, { metaCollector: meta, loadRecords } )
 			.then( matches => {
 				if ( meta ) {
 					res.set( "x-count", meta.count );
@@ -245,36 +245,26 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListAll( req, res ) {
 		Log( "got request listing all items" );
 
-		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false, loadRecords = true } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
 
-		const sortModification = descending ? -1 : 1;
-
-		return model.list( 0, Infinity, true, meta )
+		return model.list( { offset, limit, sortBy, sortAscendingly: !descending }, { loadRecords, metaCollector: meta } )
 			.then( matches => {
 				const result = {
-					items: matches.map( match => match.toObject() ).sort( ( l , r ) => {
-						const lAtt = l[sortBy];
-						const rAtt = r[sortBy];
-						if( ( lAtt == null && rAtt == null ) || lAtt === rAtt ) {
-							return 0;
-						}
-						if( lAtt == null ) {
-							return 1;
-						}
-						if( rAtt == null ) {
-							return -1;
-						}
-						return lAtt > rAtt ? sortModification : -sortModification;
-					} ).slice( Number( offset ), Number( offset ) + Number( limit ) ),
+					items: matches,
 				};
+
+				if ( meta ) {
+					console.log( { meta } );
+					result.count = meta.count;
+				}
 
 				if ( meta ) {
 					res.set( "x-count", meta.count );
 				}
 
 				if ( req.headers["x-list-as-array"] ) {
-					res.json( result.items );
+					res.json( result );
 				} else {
 					if ( meta ) {
 						result.count = meta.count;
@@ -333,7 +323,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @param {ServerResponse} res API for creating response
 	 * @returns {Promise} promises request processed successfully
 	 */
-	function reqUpdateItem( req, res ) {
+	function reqModifyItem( req, res ) {
 		Log( "got request updating some item" );
 
 		const { uuid } = req.params;
@@ -365,6 +355,60 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 								loaded.$properties[propName] = record[propName];
 							}
+						}
+
+						return loaded.save()
+							.then( saved => {
+								res.json( { uuid: saved.uuid } );
+							} )
+							.catch( error => {
+								Log( "updating %s:", routeName, error );
+								res.status( 500 ).json( { message: error.message } );
+							} );
+					} );
+			} );
+	}
+
+
+	/**
+	 * Handles request for updating properties of a selected item.
+	 *
+	 * @param {IncomingMessage} req description of request
+	 * @param {ServerResponse} res API for creating response
+	 * @returns {Promise} promises request processed successfully
+	 */
+	function reqReplaceItem( req, res ) {
+		Log( "got request replacing some item" );
+
+		const { uuid } = req.params;
+		if ( !ptnUuid.test( uuid ) ) {
+			res.status( 400 ).json( { message: "invalid UUID" } );
+			return undefined;
+		}
+
+		const item = new model( uuid ); // eslint-disable-line new-cap
+
+		return item.$exists
+			.then( exists => {
+				if ( !exists ) {
+					res.status( 404 ).json( { message: "selected item not found" } );
+					return undefined;
+				}
+
+				return Promise.all( [
+					item.load(),
+					req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody(),
+				] )
+					.then( ( [ loaded, record ] ) => {
+
+						const propNames = Object.keys( loaded );
+						const numNames = propNames.length;
+
+						for ( let i = 0; i < numNames; i++ ) {
+							const propName = propNames[i];
+							console.log( loaded.$properties[propName],record[propName] );
+
+							loaded.$properties[propName] = record[propName] || null;
 						}
 
 						return loaded.save()
