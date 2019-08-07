@@ -2,21 +2,26 @@
 
 exposing RESTful access on Hitchy's ODM
 
-[Hitchy](http://hitchyjs.org) is a server-side framework for developing web applications with [NodeJS](https://nodejs.org). [Odem](https://www.npmjs.com/package/hitchy-plugin-odem) is Hitchy's object document management providing data backends like regular file systems, LevelDBs and temporary in-memory databases. This plugin is the missing glue between these two components.
+[Hitchy](http://hitchyjs.org) is a server-side framework for developing web applications with [Node.js](https://nodejs.org). [Odem](https://www.npmjs.com/package/hitchy-plugin-odem) is plugin for Hitchy implementing an object document management (ODM) using data backends like regular file systems, LevelDBs and temporary in-memory databases.
+ 
+This plugin is defining blueprint routes for accessing data managed in ODM using REST API.
+
 
 ## Installation
 
 In your Hitchy-based application run
 
 ```bash
-npm install --save hitchy-plugin-odem-rest
+npm i hitchy-plugin-odem-rest
 ```
 
-This will install [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly.
+This will install [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly. Thus you don't have to add it as a dependency explicitly.
 
 ## Usage
 
-In your Hitchy-based application create a subfolder **api/models** and add a module file for every model to be available in ODM there. Every such module is exposing the model's schema like this example:
+Create **api/models** in your Hitchy-based project and add a file there for every model to be managed by ODM. See the [documentation of hitchy-plugin-odem]() for additional information on how to define models in filesystem.
+
+Let's assume there is a file **api/models/employee.js** containing this code:
 
 ```javascript
 module.exports = {
@@ -57,27 +62,34 @@ module.exports = {
 };
 ```
 
-### Model's Name
-
-The model's name is derived from filename used to name the module file. You might use property **name** in module itself to selected model's name explicitly.
-
-When you put this in a file **api/models/employee.js** the plugin is using odem to define a model named **EmployeeInfos** due to the explicitly provided property **name** in module. By omitting this property the model's name is derived from module's filename. Filenames are considered case-insensitive and thus converted to all lowercase characters, first. After that the filename is converted from kebap-case to PascalCase becoming the model's name. So, if there were no property **name** in example above the resulting model's name would be **Employee**.
 
 ### Blueprint Routes
 
-The plugin is injecting blueprint routes exposing controllers for common actions per model in a RESTful way. 
+This plugin is defining a set of blueprint routes implementing REST API for every model defined in file system.
 
-> Routes always rely on the all-lowercase filename used on module defining model.
+Those routes comply with this pattern:
+
+* `<prefix>/<model>` is addressing a model or its collection of items
+* `<prefix>/<model>/<uuid>` is addressing a single item of a model
+
+The prefix is `/api` by default. This is adjustable by putting content like this into file **config/model.js**:
+
+```javascript
+exports.model = {
+    urlPrefix: "/my/custom/prefix"
+};
+```
+
+The model's segment in URL is derived as the kebab-case version of model's name which is given in PascalCase. Thus the model in file **api/models/my-fancy-model.js** will be exposed as **MyFancyModel** on server-side, which is available via URL path names starting with `/api/my-fancy-model`.
+
 
 #### Reading Item
 
 * `GET /api/employee/12345678-1234-1234-1234-1234567890ab`  
-  `GET /api/employee/read/12345678-1234-1234-1234-1234567890ab`  
-  `GET /api/employee/get/12345678-1234-1234-1234-1234567890ab`
 
-  Requests like these will return the selected item's attributes and computed attributes in JSON format. 
+Requests like these will return the selected item's attributes and computed attributes in JSON format. 
   
-  In opposition to requests for listing items this request doesn't include used UUID with response.
+In opposition to requests for listing items this request doesn't include used UUID with response.
 
 #### Updating Item
 
@@ -85,7 +97,7 @@ The plugin is injecting blueprint routes exposing controllers for common actions
   `GET /api/employee/update/12345678-1234-1234-1234-1234567890ab`    
   `GET /api/employee/write/12345678-1234-1234-1234-1234567890ab`  
 
-  These requests are available for adjusting properties of existing items. The first version expects JSON-formatted object in request's body list names and new values of attributes to be updated. The latter two formats are provided e.g. for conveniently simulating updates in browser with names and values of attributes provided in query parameters.
+These requests are available for adjusting properties of existing items. The first version expects JSON-formatted object in request's body list names and new values of attributes to be updated. The latter two formats are provided e.g. for conveniently simulating updates in browser with names and values of attributes provided in query parameters.
 
 #### Checking Item
 
