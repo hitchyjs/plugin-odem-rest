@@ -45,7 +45,7 @@ describe( "model containing just a date", () => {
 			extensionFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
-				debug: false,
+				// debug: true,
 			},
 		} )
 			.then( instance => {

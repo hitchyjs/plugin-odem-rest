@@ -208,7 +208,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListMatches( req, res ) {
 		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing matching items" );
 
-		const { offset = 0, limit = Infinity, sortBy = "", descending = false, loadRecords = false } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
 		const query = req.query.query || req.query.q;
 		const meta = req.headers["x-count"] ? {} : null;
 
@@ -225,7 +225,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const [ , operation, name, value ] = parsed;
 
-		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, {
+		return model.find( {
+			[operation]: {
+				name,
+				value
+			}
+		}, { offset, limit, sortBy, sortAscendingly: !descending }, {
 			metaCollector: meta,
 			loadRecords
 		} )
@@ -263,7 +268,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
-		return model.list( { offset, limit, sortBy, sortAscendingly: !descending }, { loadRecords, metaCollector: meta } )
+		return model.list( {
+			offset,
+			limit,
+			sortBy,
+			sortAscendingly: !descending
+		}, { loadRecords, metaCollector: meta } )
 			.then( matches => {
 				const result = {
 					items: matches.map( m => m.toObject() ),
@@ -296,7 +306,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
 			.then( record => {
-				if( record.uuid ) {
+				if ( record.uuid ) {
 					this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, "new entry can not be created with uuid" );
 					res.status( 400 ).json( { error: "new entry can not be created with uuid" } );
 					return undefined;
@@ -441,7 +451,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			.then( exists => {
 				if ( exists ) {
 					return item.remove()
-						.then( () => res.json( { uuid, status: "OK", action: "remove" } ) )
+						.then( () => res.json( {
+							uuid,
+							status: "OK",
+							action: "remove"
+						} ) )
 						.catch( error => {
 							this.api.log( "hitchy:plugin:odem:rest" )( "removing %s:", routeName, error );
 							res.status( 500 ).json( { error: error.message } );
