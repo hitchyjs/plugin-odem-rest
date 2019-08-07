@@ -140,7 +140,8 @@ describe( "entries can be added", () => {
 				for ( let i = 1, length = items.length - 1; i < length; i++ ) {
 					items[i].someString.should.be.greaterThan( items[i - 1].someString );
 				}
-				Should( items[items.length - 1].someString ).be.null();
+
+				Should( items[items.length - 1].someString ).be.undefined();
 			} );
 	} );
 
@@ -155,7 +156,8 @@ describe( "entries can be added", () => {
 				for ( let i = 1, length = items.length - 1; i < length; i++ ) {
 					items[i].someString.should.be.lessThan( items[i - 1].someString );
 				}
-				Should( items[items.length - 1].someString ).be.null();
+
+				Should( items[items.length - 1].someString ).be.undefined();
 			} );
 	} );
 
