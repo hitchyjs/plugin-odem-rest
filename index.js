@@ -30,7 +30,7 @@
 
 const { posix: { resolve } } = require( "path" );
 
-const { UUID: { ptnUuid } } = require( "hitchy-odem" );
+const { UUID: { ptnUuid } } = require( "hitchy-plugin-odem" );
 
 
 module.exports = function() {

@@ -2,7 +2,7 @@
 
 exposing RESTful access on Hitchy's ODM
 
-[Hitchy](http://hitchyjs.org) is a server-side framework for developing web applications with [NodeJS](https://nodejs.org). [Odem](https://www.npmjs.com/package/hitchy-odem) is Hitchy's object document management providing data backends like regular file systems, LevelDBs and temporary in-memory databases. This plugin is the missing glue between these two components.
+[Hitchy](http://hitchyjs.org) is a server-side framework for developing web applications with [NodeJS](https://nodejs.org). [Odem](https://www.npmjs.com/package/hitchy-plugin-odem) is Hitchy's object document management providing data backends like regular file systems, LevelDBs and temporary in-memory databases. This plugin is the missing glue between these two components.
 
 ## Installation
 
@@ -12,7 +12,7 @@ In your Hitchy-based application run
 npm install --save hitchy-plugin-odem-rest
 ```
 
-This will install [hitchy-odem](https://www.npmjs.com/package/hitchy-odem) implicitly.
+This will install [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly.
 
 ## Usage
 
