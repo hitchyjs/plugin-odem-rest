@@ -34,6 +34,8 @@ const { UUID: { ptnUuid } } = require( "hitchy-plugin-odem" );
 
 
 module.exports = function() {
+	const { utility: { case: { pascalToKebab } } } = this;
+
 	return {
 		policies() {
 			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
@@ -54,7 +56,7 @@ module.exports = function() {
 
 			for ( let i = 0, numNames = modelNames.length; i < numNames; i++ ) {
 				const name = modelNames[i];
-				const routeName = name.toLocaleLowerCase();
+				const routeName = pascalToKebab( name );
 				const model = models[name] || {};
 
 				addRoutesOnModel( routes, urlPrefix, routeName, model );
