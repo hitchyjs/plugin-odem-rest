@@ -182,7 +182,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			return undefined;
 		}
 
-		return ( req.query.query || req.query.q ? reqListMatches : reqListAll )( req, res );
+		return ( req.query.query || req.query.q ? reqListMatches : reqListAll ).call(this, req, res );
 	}
 
 	/**
