@@ -99,14 +99,20 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	routes.set( "GET " + resolve( urlPrefix, routeName, ":uuid" ), reqFetchItem );
 
 	routes.set( "HEAD " + resolve( urlPrefix, routeName, ":uuid" ), reqCheckItem );
+	routes.set( "HEAD " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 200 ).send() );
+	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), ( req, res ) => res.status( 404 ).send() );
 
 	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), ( req, res ) => res.status( 400 ).json( { error: "new entry can not be created with uuid" } ) );
 	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
 
 	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqReplaceItem );
+	routes.set( "PUT " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 400 ).json( { error: "PUT is not permited on collections" } ) );
 	routes.set( "PATCH " + resolve( urlPrefix, routeName, ":uuid" ), reqModifyItem );
+	routes.set( "PATCH " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 400 ).json( { error: "PATCH is not permited on collections" } ) );
 
 	routes.set( "DELETE " + resolve( urlPrefix, routeName, ":uuid" ), reqRemoveItem );
+	routes.set( "DELETE " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 403 ).json( { error: "DELETE is not permited on collections" } ) );
+	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), ( req, res ) => res.status( 404 ).json( { error: "no such collection" } ) );
 
 
 	/**
@@ -122,7 +128,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { error: "invalid UUID" } );
+			res.status( 400 ).send();
 			return undefined;
 		}
 
@@ -130,7 +136,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		return item.$exists
 			.then( exists => {
-				res.json( { exists } );
+				res.status( exists ? 200 : 404 ).send();
 			} )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "checking %s:", routeName, error );
@@ -155,16 +161,20 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		}
 
 		const item = new model( uuid ); // eslint-disable-line new-cap
-		if ( !item.$exists ) {
-			res.status( 404 ).json( { error: "selected item not found" } );
-			return undefined;
-		}
 
 		return item.load()
 			.then( loaded => res.json( loaded.toObject() ) )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "fetching %s:", routeName, error );
-				res.status( 500 ).json( { error: error.message } );
+				switch ( error.code ) {
+					case "ENOENT" : {
+						res.status( 404 ).json( { error: "selected item not found" } );
+						break;
+					}
+					default : {
+						res.status( 500 ).json( { error: error.message } );
+					}
+				}
 			} );
 	}
 
@@ -320,7 +330,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqModifyItem( req, res ) {
-		this.api.log( "hitchy:plugin:odem:rest" )( "got request updating some item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request to modify some item" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -355,7 +365,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 						return loaded.save()
 							.then( saved => {
-								res.json( { uuid: saved.uuid } );
+								res.json( saved.toObject() );
 							} )
 							.catch( error => {
 								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
@@ -384,37 +394,26 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const item = new model( uuid ); // eslint-disable-line new-cap
 
-		return item.$exists
-			.then( exists => {
-				if ( !exists ) {
-					res.status( 404 ).json( { error: "selected item not found" } );
-					return undefined;
-				}
+		return Promise.all( [ item.$exists, req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() ] )
+			.then( ( [ exists, record ] ) => {
+				return ( exists ? item.load() : Promise.resolve() ).then( () => {
+					const propNames = Object.keys( model.schema.props );
+					const numNames = propNames.length;
 
-				return Promise.all( [
-					item.load(),
-					req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody(),
-				] )
-					.then( ( [ loaded, record ] ) => {
+					for ( let i = 0; i < numNames; i++ ) {
+						const propName = propNames[i];
 
-						const propNames = Object.keys( loaded );
-						const numNames = propNames.length;
-
-						for ( let i = 0; i < numNames; i++ ) {
-							const propName = propNames[i];
-
-							loaded.$properties[propName] = record[propName] || null;
-						}
-
-						return loaded.save()
-							.then( saved => {
-								res.json( { uuid: saved.uuid } );
-							} )
-							.catch( error => {
-								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
-								res.status( 500 ).json( { error: error.message } );
-							} );
-					} );
+						item.$properties[propName] = record[propName] || null;
+					}
+					return item.save( { ignoreUnloaded: !exists } );
+				} );
+			} )
+			.then( saved => {
+				res.json( { uuid: saved.uuid } );
+			} )
+			.catch( error => {
+				this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -448,7 +447,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 				}
 
 				this.api.log( "hitchy:plugin:odem:rest" )( "request for removing missing %s ignored", routeName );
-				res.json( { uuid, status: "OK", action: "remove" } );
+				res.status( 404 ).json( { error: "no such entry" } );
 
 				return undefined;
 			} );

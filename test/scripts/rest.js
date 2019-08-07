@@ -332,7 +332,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again still returns the three records created before, only)", () => {
-			return PUT( "/api/mixed" )
+			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 3 );
@@ -341,7 +341,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "always replaces whole existing record with provided one", () => {
-			return PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
@@ -351,6 +351,7 @@ describe( "REST-API", () => {
 				.then( () => PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
 					myIntegerProp: 600,
 				} ) )
+				.then( () => GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 2 ).and.properties( "uuid", "myIntegerProp" );
@@ -362,6 +363,7 @@ describe( "REST-API", () => {
 					myNumericProp: 2.81,
 					myBooleanProp: true,
 				} ) )
+				.then( () => GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
@@ -412,7 +414,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "updates existing record using UUID of existing record", () => {
-			return PATCH( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+			return PATCH( `/api/mixed/${uuid1}`, {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -423,28 +425,28 @@ describe( "REST-API", () => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "uuid" )
-						.which.is.a.String().and.equal( "12345678-1234-1234-1234-1234567890ab" );
+						.which.is.a.String().and.equal( uuid1 );
 				} );
 		} );
 
 		it( "does not add another record on success", () => {
-			return PATCH( "/api/mixed" )
+			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 3 );
-					res.data.items.filter( r => r.uuid === "12345678-1234-1234-1234-1234567890ab" ).should.have.length( 1 );
+					res.data.items.filter( r => r.uuid === uuid1 ).should.have.length( 1 );
 				} );
 		} );
 
 		it( "replaces provided properties of selected record, only", () => {
-			return PATCH( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return PATCH( `/api/mixed/${uuid1}` )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
 						"uuid", "myDateProp", "myStringProp", "myIntegerProp",
 						"myNumericProp", "myBooleanProp" );
 				} )
-				.then( () => PATCH( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+				.then( () => PATCH( `/api/mixed/${uuid1}`, {
 					myIntegerProp: 800,
 				} ) )
 				.then( res => {
@@ -453,7 +455,7 @@ describe( "REST-API", () => {
 						"uuid", "myDateProp", "myStringProp", "myIntegerProp",
 						"myNumericProp", "myBooleanProp" );
 				} )
-				.then( () => PATCH( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+				.then( () => PATCH( `/api/mixed/${uuid1}`, {
 					myDateProp: "2019-08-01",
 					myStringProp: "some text",
 					myIntegerProp: 900,
