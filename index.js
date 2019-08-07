@@ -177,6 +177,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises response sent
 	 */
 	function reqFetchItems( req, res ) {
+		Log( "got request fetching items" );
 		if ( req.headers["x-list-as-array"] ) {
 			res.status( 400 ).json( { error: "fetching items as array is deprecated for security reasons" } );
 			return undefined;
@@ -255,23 +256,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 				};
 
 				if ( meta ) {
-					console.log( { meta } );
-					result.count = meta.count;
+					res.set( "x-count", meta.count || 0 );
+					result.count = meta.count || 0;
 				}
 
-				if ( meta ) {
-					res.set( "x-count", meta.count );
-				}
-
-				if ( req.headers["x-list-as-array"] ) {
-					res.json( result );
-				} else {
-					if ( meta ) {
-						result.count = meta.count;
-					}
-
-					res.json( result );
-				}
+				res.json( result );
 			} )
 			.catch( error => {
 				Log( "listing %s:", routeName, error );
@@ -406,7 +395,6 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 						for ( let i = 0; i < numNames; i++ ) {
 							const propName = propNames[i];
-							console.log( loaded.$properties[propName],record[propName] );
 
 							loaded.$properties[propName] = record[propName] || null;
 						}
