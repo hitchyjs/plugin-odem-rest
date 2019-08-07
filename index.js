@@ -91,9 +91,6 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	routes.set( "GET " + resolve( urlPrefix, routeName, "remove", ":uuid" ), reqRemoveItem );
 	routes.set( "GET " + resolve( urlPrefix, routeName, "delete", ":uuid" ), reqRemoveItem );
 
-	routes.set( "GET " + resolve( urlPrefix, routeName, "get", ":uuid" ), reqFetchItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "read", ":uuid" ), reqFetchItem );
-
 	routes.set( "GET " + resolve( urlPrefix, routeName, "find" ), reqListMatches );
 
 	// here comes the REST-compliant part
