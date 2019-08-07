@@ -53,7 +53,7 @@ describe( "REST-API", () => {
 			extensionFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
-				debug: true,
+				debug: false,
 			},
 		} )
 			.then( instance => {
