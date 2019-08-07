@@ -31,7 +31,6 @@
 const { posix: { resolve } } = require( "path" );
 
 const { Uuid: { ptnUuid } } = require( "hitchy-odem" );
-const Log = require( "debug" )( "plugin-odem" );
 
 
 module.exports = function() {
@@ -118,7 +117,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqCheckItem( req, res ) {
-		Log( "got request checking if some item exists" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request checking if some item exists" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -133,7 +132,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 				res.json( { exists } );
 			} )
 			.catch( error => {
-				Log( "checking %s:", routeName, error );
+				this.api.log( "hitchy:plugin:odem:rest" )( "checking %s:", routeName, error );
 				res.status( 500 ).json( { message: error.message } );
 			} );
 	}
@@ -146,7 +145,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqFetchItem( req, res ) {
-		Log( "got request fetching some item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request fetching some item" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -163,7 +162,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		return item.load()
 			.then( loaded => res.json( loaded.toObject() ) )
 			.catch( error => {
-				Log( "fetching %s:", routeName, error );
+				this.api.log( "hitchy:plugin:odem:rest" )( "fetching %s:", routeName, error );
 				res.status( 500 ).json( { message: error.message } );
 			} );
 	}
@@ -177,7 +176,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises response sent
 	 */
 	function reqFetchItems( req, res ) {
-		Log( "got request fetching items" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request fetching items" );
 		if ( req.headers["x-list-as-array"] ) {
 			res.status( 400 ).json( { error: "fetching items as array is deprecated for security reasons" } );
 			return undefined;
@@ -194,7 +193,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise|undefined} promises request processed successfully
 	 */
 	function reqListMatches( req, res ) {
-		Log( "got request listing matching items" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing matching items" );
 
 		const { offset = 0, limit = Infinity, sortBy = "", descending = false, loadRecords = false } = req.query;
 		const query = req.query.query || req.query.q;
@@ -213,7 +212,10 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const [ , operation, name, value ] = parsed;
 
-		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, { metaCollector: meta, loadRecords } )
+		return model.findByAttribute( { [operation]: { name, value } }, { offset, limit, sortBy, sortAscendingly: !descending }, {
+			metaCollector: meta,
+			loadRecords
+		} )
 			.then( matches => {
 				if ( meta ) {
 					res.set( "x-count", meta.count );
@@ -230,7 +232,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 				res.json( result );
 			} )
 			.catch( error => {
-				Log( "querying %s:", routeName, error );
+				this.api.log( "hitchy:plugin:odem:rest" )( "querying %s:", routeName, error );
 				res.status( 500 ).json( { message: error.message } );
 			} );
 	}
@@ -244,7 +246,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqListAll( req, res ) {
-		Log( "got request listing all items" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing all items" );
 
 		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false, loadRecords = true } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
@@ -263,7 +265,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 				res.json( result );
 			} )
 			.catch( error => {
-				Log( "listing %s:", routeName, error );
+				this.api.log( "hitchy:plugin:odem:rest" )( "listing %s:", routeName, error );
 				res.status( 500 ).json( { message: error.message } );
 			} );
 	}
@@ -276,7 +278,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqCreateItem( req, res ) {
-		Log( "got request creating item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request creating item" );
 
 		const item = new model(); // eslint-disable-line new-cap
 
@@ -295,11 +297,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 				return item.save()
 					.then( saved => {
-						Log( "created %s with %s", routeName, saved.uuid );
+						this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
 						res.json( { uuid: saved.uuid } );
 					} )
 					.catch( error => {
-						Log( "creating %s:", routeName, error );
+						this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );
 						res.status( 500 ).json( { message: error.message } );
 					} );
 			} );
@@ -313,7 +315,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqModifyItem( req, res ) {
-		Log( "got request updating some item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request updating some item" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -351,7 +353,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 								res.json( { uuid: saved.uuid } );
 							} )
 							.catch( error => {
-								Log( "updating %s:", routeName, error );
+								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
 								res.status( 500 ).json( { message: error.message } );
 							} );
 					} );
@@ -367,7 +369,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqReplaceItem( req, res ) {
-		Log( "got request replacing some item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request replacing some item" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -404,7 +406,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 								res.json( { uuid: saved.uuid } );
 							} )
 							.catch( error => {
-								Log( "updating %s:", routeName, error );
+								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
 								res.status( 500 ).json( { message: error.message } );
 							} );
 					} );
@@ -419,7 +421,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	 * @returns {Promise} promises request processed successfully
 	 */
 	function reqRemoveItem( req, res ) {
-		Log( "got request removing some item" );
+		this.api.log( "hitchy:plugin:odem:rest" )( "got request removing some item" );
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
@@ -435,12 +437,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					return item.remove()
 						.then( () => res.json( { uuid, status: "OK", action: "remove" } ) )
 						.catch( error => {
-							Log( "removing %s:", routeName, error );
+							this.api.log( "hitchy:plugin:odem:rest" )( "removing %s:", routeName, error );
 							res.status( 500 ).json( { message: error.message } );
 						} );
 				}
 
-				Log( "request for removing missing %s ignored", routeName );
+				this.api.log( "hitchy:plugin:odem:rest" )( "request for removing missing %s ignored", routeName );
 				res.json( { uuid, status: "OK", action: "remove" } );
 
 				return undefined;
