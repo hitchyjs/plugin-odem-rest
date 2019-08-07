@@ -46,13 +46,14 @@ require( "should-http" );
 
 describe( "REST-API", () => {
 	let server;
+	let uuid1, uuid2;
 
 	before( "starting hitchy server", () => {
 		return start( {
 			extensionFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
-				debug: false,
+				debug: true,
 			},
 		} )
 			.then( instance => {
@@ -105,7 +106,6 @@ describe( "REST-API", () => {
 	} );
 
 	describe( "POST /api/mixed", () => {
-		let uuid1, uuid2;
 
 		it( "creates new record assigning UUID automatically", () => {
 			return POST( "/api/mixed", {
@@ -129,8 +129,9 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.items.should.be.Array().which.has.length( 1 );
-					res.items.map( r => r.uuid ).should.containDeep( uuid1 );
+					res.data.items.should.be.Array().which.has.length( 1 );
+					res.data.items[0].uuid.should.be.eql( uuid1 );
+					res.data.items.map( r => r.uuid ).should.deepEqual( [uuid1] );
 				} );
 		} );
 
@@ -158,8 +159,8 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.items.should.be.Array().which.has.length( 2 );
-					res.items.map( r => r.uuid ).should.containDeep( uuid1, uuid2 );
+					res.data.items.should.be.Array().which.has.length( 2 );
+					res.data.items.map( r => r.uuid ).should.deepEqual( [ uuid1, uuid2 ] );
 				} );
 		} );
 
@@ -184,7 +185,7 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.items.should.be.Array().which.has.length( 2 );
+					res.data.items.should.be.Array().which.has.length( 2 );
 				} );
 		} );
 	} );
@@ -210,14 +211,14 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.items.should.be.Array().which.has.length( 2 );
+					res.data.items.should.be.Array().which.has.length( 2 );
 				} );
 		} );
 	} );
 
 	describe( "GET /api/mixed/:uuid", () => {
 		it( "fetches properties and UUID of a single existing record", () => {
-			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return GET( `/api/mixed/${uuid1}` )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
@@ -230,7 +231,7 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
 				.then( res => {
 					res.should.have.status( 400 ).and.be.json();
-					res.data.should.be.Object().which.has.property( "error" )
+					res.data.should.be.Object().which.have.property( "error" )
 						.which.is.a.String().which.match( /\buuid\b/i );
 				} );
 		} );
@@ -283,7 +284,7 @@ describe( "REST-API", () => {
 			return GET( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.items.should.be.Array().which.has.length( 2 );
+					res.data.items.should.be.Array().which.has.length( 2 );
 				} );
 		} );
 	} );

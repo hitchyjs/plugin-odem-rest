@@ -30,7 +30,7 @@
 
 const { posix: { resolve } } = require( "path" );
 
-const { Uuid: { ptnUuid } } = require( "hitchy-odem" );
+const { UUID: { ptnUuid } } = require( "hitchy-odem" );
 
 
 module.exports = function() {
@@ -100,6 +100,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 	routes.set( "HEAD " + resolve( urlPrefix, routeName, ":uuid" ), reqCheckItem );
 
+	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), ( req, res ) => res.status( 400 ).json( { error: "new entry can not be created with uuid" } ) );
 	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
 
 	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqReplaceItem );
@@ -121,7 +122,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { message: "invalid UUID" } );
+			res.status( 400 ).json( { error: "invalid UUID" } );
 			return undefined;
 		}
 
@@ -133,7 +134,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			} )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "checking %s:", routeName, error );
-				res.status( 500 ).json( { message: error.message } );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -149,13 +150,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { message: "invalid UUID" } );
+			res.status( 400 ).json( { error: "invalid UUID" } );
 			return undefined;
 		}
 
 		const item = new model( uuid ); // eslint-disable-line new-cap
 		if ( !item.$exists ) {
-			res.status( 404 ).json( { message: "selected item not found" } );
+			res.status( 404 ).json( { error: "selected item not found" } );
 			return undefined;
 		}
 
@@ -163,7 +164,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			.then( loaded => res.json( loaded.toObject() ) )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "fetching %s:", routeName, error );
-				res.status( 500 ).json( { message: error.message } );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -182,7 +183,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			return undefined;
 		}
 
-		return ( req.query.query || req.query.q ? reqListMatches : reqListAll ).call(this, req, res );
+		return ( req.query.query || req.query.q ? reqListMatches : reqListAll ).call( this, req, res );
 	}
 
 	/**
@@ -233,7 +234,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			} )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "querying %s:", routeName, error );
-				res.status( 500 ).json( { message: error.message } );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -248,13 +249,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListAll( req, res ) {
 		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing all items" );
 
-		const { offset = 0, limit = Infinity, sortBy = "uuid", descending = false, loadRecords = true } = req.query;
+		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
 		const meta = req.headers["x-count"] ? {} : null;
-
 		return model.list( { offset, limit, sortBy, sortAscendingly: !descending }, { loadRecords, metaCollector: meta } )
 			.then( matches => {
 				const result = {
-					items: matches,
+					items: matches.map( m => m.toObject() ),
 				};
 
 				if ( meta ) {
@@ -266,7 +266,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			} )
 			.catch( error => {
 				this.api.log( "hitchy:plugin:odem:rest" )( "listing %s:", routeName, error );
-				res.status( 500 ).json( { message: error.message } );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -284,6 +284,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
 			.then( record => {
+				if( record.uuid ) {
+					this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, "new entry can not be created with uuid" );
+					res.status( 400 ).json( { error: "new entry can not be created with uuid" } );
+					return undefined;
+				}
+
 				if ( record ) {
 					const propNames = Object.keys( record );
 					const numNames = propNames.length;
@@ -295,14 +301,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 					}
 				}
 
-				return item.save()
-					.then( saved => {
-						this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
-						res.json( { uuid: saved.uuid } );
-					} )
+				return item.save().then( saved => {
+					this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
+					res.json( { uuid: saved.uuid } );
+				} )
 					.catch( error => {
 						this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );
-						res.status( 500 ).json( { message: error.message } );
+						res.status( 500 ).json( { error: error.message } );
 					} );
 			} );
 	}
@@ -319,7 +324,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { message: "invalid UUID" } );
+			res.status( 400 ).json( { error: "invalid UUID" } );
 			return undefined;
 		}
 
@@ -328,7 +333,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		return item.$exists
 			.then( exists => {
 				if ( !exists ) {
-					res.status( 404 ).json( { message: "selected item not found" } );
+					res.status( 404 ).json( { error: "selected item not found" } );
 					return undefined;
 				}
 
@@ -354,7 +359,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 							} )
 							.catch( error => {
 								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
-								res.status( 500 ).json( { message: error.message } );
+								res.status( 500 ).json( { error: error.message } );
 							} );
 					} );
 			} );
@@ -373,7 +378,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { message: "invalid UUID" } );
+			res.status( 400 ).json( { error: "invalid UUID" } );
 			return undefined;
 		}
 
@@ -382,7 +387,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		return item.$exists
 			.then( exists => {
 				if ( !exists ) {
-					res.status( 404 ).json( { message: "selected item not found" } );
+					res.status( 404 ).json( { error: "selected item not found" } );
 					return undefined;
 				}
 
@@ -407,7 +412,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 							} )
 							.catch( error => {
 								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
-								res.status( 500 ).json( { message: error.message } );
+								res.status( 500 ).json( { error: error.message } );
 							} );
 					} );
 			} );
@@ -425,7 +430,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 		const { uuid } = req.params;
 		if ( !ptnUuid.test( uuid ) ) {
-			res.status( 400 ).json( { message: "invalid UUID" } );
+			res.status( 400 ).json( { error: "invalid UUID" } );
 			return undefined;
 		}
 
@@ -438,7 +443,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 						.then( () => res.json( { uuid, status: "OK", action: "remove" } ) )
 						.catch( error => {
 							this.api.log( "hitchy:plugin:odem:rest" )( "removing %s:", routeName, error );
-							res.status( 500 ).json( { message: error.message } );
+							res.status( 500 ).json( { error: error.message } );
 						} );
 				}
 
