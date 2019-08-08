@@ -107,9 +107,8 @@ Response status code is used to indicate basic result of either requests.
 | 200 | A request was successful. In case of HEAD-request the tested model or item exists. |
 | 201 | A POST request was successful in creating another item. |
 | 400 | A given UUID is malformed. |
-| 403 | A requested action is forbidden, e.g. trying to delete a model. |
 | 404 | A requested model or item wasn't found. |
-| 405 | A given method isn't allowed on selected model or item. This is basically a more specific information related to performing some invalid request like trying to PATCH a whole model instead of a single item. |
+| 405 | A given method isn't allowed on selected model or item. This is basically a more specific information related to performing some invalid request like trying to PATCH or DELETE a whole model instead of a single item. |
 
 
 ### Convenience Routes
