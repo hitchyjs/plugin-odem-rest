@@ -98,21 +98,56 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	routes.set( "GET " + resolve( urlPrefix, routeName, ":uuid" ), reqFetchItem );
 
 	routes.set( "HEAD " + resolve( urlPrefix, routeName, ":uuid" ), reqCheckItem );
-	routes.set( "HEAD " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 200 ).send() );
-	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), ( req, res ) => res.status( 404 ).send() );
+	routes.set( "HEAD " + resolve( urlPrefix, routeName ), reqSuccess );
+	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), reqNotFound );
 
-	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), ( req, res ) => res.status( 400 ).json( { error: "new entry can not be created with uuid" } ) );
+	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), reqError( 400, "new entry can not be created with uuid" ) );
 	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
 
 	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqReplaceItem );
-	routes.set( "PUT " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 400 ).json( { error: "PUT is not permited on collections" } ) );
+	routes.set( "PUT " + resolve( urlPrefix, routeName ), reqError( 400, "PUT is not permited on collections" ) );
 	routes.set( "PATCH " + resolve( urlPrefix, routeName, ":uuid" ), reqModifyItem );
-	routes.set( "PATCH " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 400 ).json( { error: "PATCH is not permited on collections" } ) );
+	routes.set( "PATCH " + resolve( urlPrefix, routeName ), reqError( 400, "PATCH is not permited on collections" ) );
 
 	routes.set( "DELETE " + resolve( urlPrefix, routeName, ":uuid" ), reqRemoveItem );
-	routes.set( "DELETE " + resolve( urlPrefix, routeName ), ( req, res ) => res.status( 403 ).json( { error: "DELETE is not permited on collections" } ) );
-	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), ( req, res ) => res.status( 404 ).json( { error: "no such collection" } ) );
+	routes.set( "DELETE " + resolve( urlPrefix, routeName ), reqError( 403, "DELETE is not permited on collections" ) );
+	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), reqError( 404, "no such collection" ) );
 
+
+	/**
+	 * Responds on success.
+	 *
+	 * @param {IncomingMessage} _ not used
+	 * @param {ServerResponse} res response manager
+	 * @returns {void}
+	 */
+	function reqSuccess( _, res ) {
+		res.status( 200 ).send();
+	}
+
+	/**
+	 * Responds with error due to entity not found.
+	 *
+	 * @param {IncomingMessage} _ not used
+	 * @param {ServerResponse} res response manager
+	 * @returns {void}
+	 */
+	function reqNotFound( _, res ) {
+		res.status( 404 ).send();
+	}
+
+	/**
+	 * Responds on success.
+	 *
+	 * @param {int} code HTTP status code to respond with
+	 * @param {string} message error message to provide in JSON response body
+	 * @returns {function(IncomingMessage, ServerResponse)} handler responding according to parameters
+	 */
+	function reqError( code, message ) {
+		return ( _, res ) => {
+			res.status( code ).json( { error: message } );
+		};
+	}
 
 	/**
 	 * Handles request for checking whether some selected item of model exists
