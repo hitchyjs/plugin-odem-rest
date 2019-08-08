@@ -31,7 +31,7 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
-const HitchyDev = require( "hitchy-server-dev-tools" );
+const { start: Start, stop: Stop, query: { get: GET, post: POST, put: PUT } } = require( "hitchy-server-dev-tools" );
 
 require( "should" );
 require( "should-http" );
@@ -41,7 +41,7 @@ describe( "model containing just a string", () => {
 	let server;
 
 	before( "starting hitchy server", () => {
-		return HitchyDev.start( {
+		return Start( {
 			extensionFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
@@ -53,17 +53,17 @@ describe( "model containing just a string", () => {
 			} );
 	} );
 
-	after( "stopping hitchy server", () => HitchyDev.stop( server ) );
+	after( "stopping hitchy server", () => Stop( server ) );
 
 	it( "is exposed", () => {
-		return HitchyDev.query.get( "/api/string" )
+		return GET( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 );
 			} );
 	} );
 
 	it( "does not have any record initially", () => {
-		return HitchyDev.query.get( "/api/string" )
+		return GET( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.empty();
@@ -71,7 +71,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides number of records on demand, too", () => {
-		return HitchyDev.query.get( "/api/string", null, { "x-count": "1" } )
+		return GET( "/api/string", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -82,14 +82,14 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "is creating new record", () => {
-		return HitchyDev.query.post( "/api/string", { someString: "2018-08-08" } )
+		return POST( "/api/string", { someString: "2018-08-08" } )
 			.then( res => {
 				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
 	it( "lists created record now", () => {
-		return HitchyDev.query.get( "/api/string" )
+		return GET( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
@@ -100,7 +100,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides updated number of records on demand", () => {
-		return HitchyDev.query.get( "/api/string", null, { "x-count": "1" } )
+		return GET( "/api/string", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -111,18 +111,18 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "updates previously created record", () => {
-		return HitchyDev.query.get( "/api/string" )
+		return GET( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const uuid = res.data.items[0].uuid;
 
-				return HitchyDev.query.put( "/api/string/" + uuid, { someString: "2018-09-09" } )
+				return PUT( "/api/string/" + uuid, { someString: "2018-09-09" } )
 					.then( res2 => {
 						res2.should.have.status( 200 ).and.be.json();
 
-						return HitchyDev.query.get( "/api/string" )
+						return GET( "/api/string" )
 							.then( res3 => {
 								res3.should.have.status( 200 ).and.be.json();
 								res3.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
