@@ -56,20 +56,23 @@ describe( "entries can be added", () => {
 
 
 	it( "is creating new record", () => {
-		return POST( "/api/string", { someString: "entry no. 0" } )
+		return POST( "/api/mixed", {
+			myStringProp: "entry no. 00",
+			myIntegerProp: 0,
+		} )
 			.then( res => {
 				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
 	it( "lists created record now", () => {
-		return GET( "/api/string" )
+		return GET( "/api/mixed" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				res.data.items[0].should.have.property( "uuid" ).which.is.a.String().which.is.not.empty();
-				res.data.items[0].someString.should.equal( "entry no. 0" );
+				res.data.items[0].myStringProp.should.equal( "entry no. 00" );
 			} );
 	} );
 
@@ -77,7 +80,10 @@ describe( "entries can be added", () => {
 		const Promises = new Array( 30 );
 
 		for ( let index = 1, length = 30; index < length; index++ ) {
-			Promises[index] = POST( "/api/string", { someString: `entry no. ${index}` } )
+			Promises[index] = POST( "/api/mixed", {
+				myStringProp: `entry no. ${String( "0" + index ).slice( -2 )}`,
+				myIntegerProp: index,
+			} )
 				.then( res => {
 					res.should.have.status( 201 ).and.be.json();
 				} );
@@ -87,7 +93,7 @@ describe( "entries can be added", () => {
 	} );
 
 	it( "lists created record now", () => {
-		return GET( "/api/string" )
+		return GET( "/api/mixed" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
@@ -98,55 +104,55 @@ describe( "entries can be added", () => {
 	} );
 
 	it( "sorts list ascendingly on demand", () => {
-		return GET( "/api/string?sortBy=someString" )
+		return GET( "/api/mixed?sortBy=myStringProp" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const { items } = res.data;
 				for ( let i = 1, length = items.length; i < length; i++ ) {
-					items[i].someString.should.be.greaterThan( items[i - 1].someString );
+					items[i].myStringProp.should.be.greaterThan( items[i - 1].myStringProp );
 				}
 			} );
 	} );
 
 	it( "sorts list descendingly on demand", () => {
-		return GET( "/api/string?sortBy=someString&descending=true" )
+		return GET( "/api/mixed?sortBy=myStringProp&descending=true" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const { items } = res.data;
 				for ( let i = 1, length = items.length; i < length; i++ ) {
-					items[i].someString.should.be.lessThan( items[i - 1].someString );
+					items[i].myStringProp.should.be.lessThan( items[i - 1].myStringProp );
 				}
 			} );
 	} );
 
 	it( "creates another record lacking property used to sort by before", () => {
-		return POST( "/api/string" )
+		return POST( "/api/mixed" )
 			.then( res => {
 				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
 	it( "sorts records providing value for sorting ascendingly and appends those missing related value", () => {
-		return GET( "/api/string?sortBy=someString" )
+		return GET( "/api/mixed?sortBy=myStringProp" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const { items } = res.data;
 				for ( let i = 1, length = items.length - 1; i < length; i++ ) {
-					items[i].someString.should.be.greaterThan( items[i - 1].someString );
+					items[i].myStringProp.should.be.greaterThan( items[i - 1].myStringProp );
 				}
 
-				Should( items[items.length - 1].someString ).be.undefined();
+				Should( items[items.length - 1].myStringProp ).be.undefined();
 			} );
 	} );
 
 	it( "sorts records providing value for sorting descendingly and appends those missing related value", () => {
-		return GET( "/api/string?sortBy=someString&descending=1" )
+		return GET( "/api/mixed?sortBy=myStringProp&descending=1" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
@@ -154,10 +160,10 @@ describe( "entries can be added", () => {
 				const { items } = res.data;
 
 				for ( let i = 1, length = items.length - 1; i < length; i++ ) {
-					items[i].someString.should.be.lessThan( items[i - 1].someString );
+					items[i].myStringProp.should.be.lessThan( items[i - 1].myStringProp );
 				}
 
-				Should( items[items.length - 1].someString ).be.undefined();
+				Should( items[items.length - 1].myStringProp ).be.undefined();
 			} );
 	} );
 
@@ -165,7 +171,7 @@ describe( "entries can be added", () => {
 		const Promises = new Array( 31 );
 
 		for ( let limit = 0; limit <= 31; limit++ ) {
-			Promises[limit] = GET( `/api/string?limit=${limit}` )
+			Promises[limit] = GET( `/api/mixed?limit=${limit}` )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array();
@@ -180,7 +186,7 @@ describe( "entries can be added", () => {
 	it( `lists correct number of entries if limit is used in sorted list`, () => {
 		const Promises = new Array( 31 );
 		for ( let limit = 0; limit <= 31; limit++ ) {
-			Promises[limit] = GET( `/api/string?limit=${limit}&sortBy=someString` )
+			Promises[limit] = GET( `/api/mixed?limit=${limit}&sortBy=myStringProp` )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array();
@@ -191,20 +197,19 @@ describe( "entries can be added", () => {
 		return Promise.all( Promises );
 	} );
 
-
 	it( `lists the correct items if offset is used`, () => {
-		return GET( "/api/string?sortBy=someString" )
+		return GET( "/api/mixed?sortBy=myStringProp" )
 			.then( re => {
 				const fullList = re.data.items;
 				const length = fullList.length;
 				const Promises = new Array( length );
 				for ( let offset = 0; offset < length; offset++ ) {
-					Promises[offset] = GET( `/api/string?sortBy=someString&offset=${offset}` )
+					Promises[offset] = GET( `/api/mixed?sortBy=myStringProp&offset=${offset}` )
 						.then( res => {
 							res.should.have.status( 200 ).and.be.json();
 							res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array();
 
-							Should( res.data.items[0].someString ).be.equal( fullList[offset].someString );
+							Should( res.data.items[0].myStringProp ).be.equal( fullList[offset].myStringProp );
 							res.data.items[0].uuid.should.be.equal( fullList[offset].uuid );
 						} );
 				}
@@ -213,19 +218,19 @@ describe( "entries can be added", () => {
 	} );
 
 	it( `lists the correct items if offset and limit is used`, () => {
-		return GET( "/api/string?sortBy=someString" )
+		return GET( "/api/mixed?sortBy=myStringProp" )
 			.then( re => {
 				const fullList = re.data.items;
 				const length = fullList.length;
 				const Promises = new Array( length );
 				for ( let offset = 0; offset < length - 5; offset++ ) {
-					Promises[offset] = GET( `/api/string?sortBy=someString&offset=${offset}&limit=5` )
+					Promises[offset] = GET( `/api/mixed?sortBy=myStringProp&offset=${offset}&limit=5` )
 						.then( res => {
 							res.should.have.status( 200 ).and.be.json();
 							res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 5 );
 
-							Should( res.data.items[0].someString ).be.equal( fullList[offset].someString );
-							Should( res.data.items[res.data.items.length - 1].someString ).be.equal( fullList[offset + 4].someString );
+							Should( res.data.items[0].myStringProp ).be.equal( fullList[offset].myStringProp );
+							Should( res.data.items[res.data.items.length - 1].myStringProp ).be.equal( fullList[offset + 4].myStringProp );
 							res.data.items[0].uuid.should.be.equal( fullList[offset].uuid );
 						} );
 				}
@@ -233,4 +238,173 @@ describe( "entries can be added", () => {
 			} );
 	} );
 
+	it( `fetches items with property equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:eq:entry%20no.%2005" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 1 );
+			} );
+	} );
+
+	it( `fetches items with property greater than given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:gt:entry%20no.%2005" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 24 );
+			} );
+	} );
+
+	it( `fetches items with property greater than or equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:gte:entry%20no.%2005" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 25 );
+			} );
+	} );
+
+	it( `fetches items with property less than given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:lt:entry%20no.%2005" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 5 );
+			} );
+	} );
+
+	it( `fetches items with property less than or equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 6 );
+			} );
+	} );
+
+	it( `supports slicing when fetching items with property equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:eq:entry%20no.%2005&offset=0" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 1 );
+
+				return GET( "/api/mixed?q=myStringProp:eq:entry%20no.%2005&offset=5" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 0 );
+
+				return GET( "/api/mixed?q=myStringProp:eq:entry%20no.%2005&offset=0&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 1 );
+
+				return GET( "/api/mixed?q=myStringProp:eq:entry%20no.%2005&offset=5&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 0 );
+			} );
+	} );
+
+	it( `supports slicing when fetching items with property less than given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:lt:entry%20no.%2005&offset=0" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 5 );
+
+				return GET( "/api/mixed?q=myStringProp:lt:entry%20no.%2005&offset=5" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 0 );
+
+				return GET( "/api/mixed?q=myStringProp:lt:entry%20no.%2005&offset=0&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+
+				return GET( "/api/mixed?q=myStringProp:lt:entry%20no.%2005&offset=5&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 0 );
+			} );
+	} );
+
+	it( `supports slicing when fetching items with property less than or equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005&offset=0" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 6 );
+
+				return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005&offset=5" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 1 );
+
+				return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005&offset=0&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+
+				return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005&offset=5&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 1 );
+			} );
+	} );
+
+	it( `supports slicing when fetching items with property greater than given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:gt:entry%20no.%2005&offset=0" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 24 );
+
+				return GET( "/api/mixed?q=myStringProp:gt:entry%20no.%2005&offset=5" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 19 );
+
+				return GET( "/api/mixed?q=myStringProp:gt:entry%20no.%2005&offset=0&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+
+				return GET( "/api/mixed?q=myStringProp:gt:entry%20no.%2005&offset=5&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+			} );
+	} );
+
+	it( `supports slicing when fetching items with property greater than or equal given value`, () => {
+		return GET( "/api/mixed?q=myStringProp:gte:entry%20no.%2005&offset=0" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 25 );
+
+				return GET( "/api/mixed?q=myStringProp:gte:entry%20no.%2005&offset=5" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 20 );
+
+				return GET( "/api/mixed?q=myStringProp:lte:entry%20no.%2005&offset=0&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+
+				return GET( "/api/mixed?q=myStringProp:gte:entry%20no.%2005&offset=5&limit=3" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.has.length( 3 );
+			} );
+	} );
 } );

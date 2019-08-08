@@ -246,13 +246,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 			return undefined;
 		}
 
-		const parsed = /^([^:]+):([^:]+):(.*)$/.exec( query );
+		const parsed = /^([^:\s]+):([a-z]{2,}):(.*)$/.exec( query );
 		if ( !parsed ) {
 			res.status( 400 ).json( { error: "invalid query, use query=operation:name:value" } );
 			return undefined;
 		}
 
-		const [ , operation, name, value ] = parsed;
+		const [ , name, operation, value ] = parsed;
 		const meta = req.headers["x-count"] ? {} : null;
 
 		return model.find( {
