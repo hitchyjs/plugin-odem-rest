@@ -27,7 +27,7 @@ Let's assume there is a file **api/models/local-employee.js** containing this co
 
 ```javascript
 module.exports = {
-	attributes: {
+	props: {
 		lastName: {
 			type: "string",
 			required: true,
@@ -153,7 +153,7 @@ Using query parameter `q` the list of fetched items can be limited to those item
 
 The search query may comply with the pattern `name:operation:value` to compare every item's property with a given value using one of these operations:
   
-| Name | Operation                |
+| Name | Test Operation           |
 |------|--------------------------|
 | eq   | is equal                 |
 | neq  | is not equal             |
@@ -163,6 +163,27 @@ The search query may comply with the pattern `name:operation:value` to compare e
 | gte  | is greater than or equal |
 
 For example, a GET-request for `/api/localEmployee?q=lastName:eq:Doe` will deliver all items of model **LocalEmployee** with property **lastName** equal given value **Doe**. The value may contain further colons.
+
+##### Simple Unary Tests
+
+Alternatively the search query may comply with the pattern `name:operation` for testing the named property using one of these supported operations:
+  
+| Name    | Test Operation                              |
+|---------|---------------------------------------------|
+| null    | property is set / has any value             |
+| notnull | property is unset / does not have any value |
+
+For example, a GET-request for `/api/localEmployee?q=lastName:null` will deliver all items of model **LocalEmployee** with unset property **lastName**.
+
+##### Simple Ternary Tests
+
+Another kind of test operation are ternary tests. This refers to operations consisting of three parameters: the property's name and two values instead of one to compare that property's values with. Related queries comply with the pattern `name:operation:value:value`, hence using colon in first given value is not supported.
+  
+| Name    | Test Operation                                                 |
+|---------|----------------------------------------------------------------|
+| between | property's value is between the two given values (inclusively) |
+
+For example, a GET-request for `/api/localEmployee?q=age:between:20:40` will deliver all items of model **LocalEmployee** with value of property **age** in range of 20-40.
 
 ##### Complex Tests
 
