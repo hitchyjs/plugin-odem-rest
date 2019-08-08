@@ -15,17 +15,18 @@ In your Hitchy-based application run
 npm i hitchy-plugin-odem-rest
 ```
 
-This will install [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly. Thus you don't have to add it as a dependency explicitly.
+This will install this plugin and the underlying [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly. Thus you don't have to add it as a dependency explicitly.
 
 ## Usage
 
-Create **api/models** in your Hitchy-based project and add a file there for every model to be managed by ODM. See the [documentation of hitchy-plugin-odem]() for additional information on how to define models in filesystem.
+This module strongly depends on [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) and its preparation of model definitions discovered by [Hitchy's core](https://hitchyjs.github.io/core/). There are separate documentations for either feature.
 
-Let's assume there is a file **api/models/employee.js** containing this code:
+For a quick start create folder **api/models** in your Hitchy-based project and add another file for every model of your application.
+
+Let's assume there is a file **api/models/local-employee.js** containing this code:
 
 ```javascript
 module.exports = {
-	name: "EmployeeInfos",
 	attributes: {
 		lastName: {
 			type: "string",
@@ -39,7 +40,7 @@ module.exports = {
 			type: "date",
 		},
 		salary: {
-			type: "decimal",
+			type: "number",
 		},
 		availableForOutsourcing: {
 			type: "boolean",
@@ -50,29 +51,26 @@ module.exports = {
 			return `${this.lastName}, ${this.firsName}`;
 		}
 	},
-	hooks: {
-		beforeValidate: [
-			function( errors ) {
-				if ( isNaN( this.birthday ) ) {
-					errors.push( new Error( "invalid birthday" ) );
-				}
-			},
-		],
-	},
 };
 ```
 
+When starting your Hitchy-based application it will discover a model named **LocalEmployee** and expose it via REST API using URLs like `/api/local-employee` just because of this module and its two dependencies in context of your application as mentioned before.
 
-### Blueprint Routes
+#### Models of Hitchy Plugins
 
-This plugin is defining a set of blueprint routes implementing REST API for every model defined in file system.
+Due to the way Hitchy is discovering plugins and compiling [components](https://hitchyjs.github.io/core/internals/components.html) defined there this plugin is always covering models defined in installed plugins as well.
+
+
+### How it works
+
+This plugin is defining a set of [blueprint routes](https://hitchyjs.github.io/core/internals/routing-basics.html#focusing-on-routes) implementing REST API for every model defined in file system as described before.
 
 Those routes comply with this pattern:
 
 * `<prefix>/<model>` is addressing a model or its collection of items
 * `<prefix>/<model>/<uuid>` is addressing a single item of a model
 
-The prefix is `/api` by default. This is adjustable by putting content like this into file **config/model.js**:
+The prefix is `/api` by default. It is adjustable by putting content like this into file **config/model.js**:
 
 ```javascript
 exports.model = {
@@ -80,76 +78,102 @@ exports.model = {
 };
 ```
 
-The model's segment in URL is derived as the kebab-case version of model's name which is given in PascalCase. Thus the model in file **api/models/my-fancy-model.js** will be exposed as **MyFancyModel** on server-side, which is available via URL path names starting with `/api/my-fancy-model`.
+The model's segment in URL `<model>` is derived as the kebab-case version of model's name which is given in PascalCase. Thus the model in file **api/models/my-fancy-model.js** is assumed to define model named **MyFancyModel** by default, resulting in model's URL segment to be **my-fancy-model** again. So the URL path for the collection of items is `/api/my-fancy-model`.
+
+In Hitchy's ODM all model instances or items are uniquely addressable via UUID. By appending an item's UUID to the given URL path of a collection you get the URL path of that item, e.g. `/api/my-fancy-model/01234567-1234-1234-1234-56789abcdef0`.
 
 
-#### Reading Item
+### The REST API
 
-* `GET /api/employee/12345678-1234-1234-1234-1234567890ab`  
+The provided routes implement these actions:
 
-Requests like these will return the selected item's attributes and computed attributes in JSON format. 
+| Method | URL | Action |
+|---|---|---|
+| GET | `/api/model` | Lists items of selected model. |
+| GET | `/api/model/<uuid>` | Fetches properties of selected item. |
+| PUT | `/api/model/<uuid>` | Replaces all properties of selected item with those given in request body. Selected item is created when missing. |
+| PATCH | `/api/model/<uuid>` | Adjusts selected item by replacing values of properties given in request body (leaving those missing in request body untouched). |
+| POST | `/api/model` | Creates new item initialized with properties provided in request body. |
+| DELETE | `/api/model/<uuid>`  | Removes selected item from model's collection. |
+| HEAD | `/api/model` | Tests if selected model exists. |
+| HEAD | `/api/model/<uuid>` | Tests if selected item exists. |
+
+The API is accepting and returning data in JSON format.
+
+Response status code is used to indicate basic result of either requests.
+
+| Status | Reason |
+|---|---|
+| 200 | A request was successful. In case of HEAD-request the tested model or item exists. |
+| 201 | A POST request was successful in creating another item. |
+| 400 | A given UUID is malformed. |
+| 403 | A requested action is forbidden, e.g. trying to delete a model. |
+| 404 | A requested model or item wasn't found. |
+| 405 | A given method isn't allowed on selected model or item. This is basically a more specific information related to performing some invalid request like trying to PATCH a whole model instead of a single item. |
+
+
+### Convenience Routes
+
+By default, the module is exposing another set of routes for every model that enables requesting either supported action using GET-requests. This is assumed to be very useful in development e.g. to conveniently add or remove items using regular browser.
+
+The URL path is extended to insert an action's name after the model's name and before some optionally given UUID.
+
+| Convenience Route | Related REST Action |
+|---|---|
+| `GET /api/model/create` | `POST /api/model` |
+| `GET /api/model/write/<uuid>` | `PATCH /api/model/<uuid>` |
+| `GET /api/model/replace/<uuid>` | `PUT /api/model/<uuid>` |
+| `GET /api/model/has/<uuid>` | `HEAD /api/model/<uuid>` |
+| `GET /api/model/remove/<uuid>` | `DELETE /api/model/<uuid>` |
+
+There are no extra routes following this pattern for actions that are exposed via GET-methods already.
+
+All request data is provided in query parameters instead of request body for GET requests don't have a body.
+
+#### Disabling Feature
+
+This feature may be disabled using configuration in file **config/model.js** exposing configuration like this one:
+
+```javascript
+exports.model = {
+    convenience: false,
+};
+``` 
+
+
+### Extended Fetching of Items
+
+Whenever fetching a list of items using GET request on a model's URL there are additional options for controlling the retrieved list.
+
+#### Sorting
+
+Using query parameter `sortBy=lastName` a fetched list of items is sorted by values of named property (which is `lastName` in this example) in ascending order. By providing another query parameter `descending=1` the sorting is done in descending order.
+
+
+#### Slicing
+
+Query parameter `limit=n` is requesting to fetch at most **n** items. Parameter `offset=n` is requesting to skip **n** items before starting retrieval.
+
+
+#### Filtering
+
+Using query parameter `q` the list of fetched items can be limited to those items matching criteria given in that query parameter. The abbreviated name `q` just refers to a _search query_.
+
+##### Simple Comparisons
+
+The search query may comply with the pattern `name:operation:value` to compare every item's property with a given value using one of these operations:
   
-In opposition to requests for listing items this request doesn't include used UUID with response.
+| Name | Operation                |
+|------|--------------------------|
+| eq   | is equal                 |
+| neq  | is not equal             |
+| lt   | is less than             |
+| lte  | is less than or equal    |
+| gt   | is greater than          |
+| gte  | is greater than or equal |
 
-#### Updating Item
+For example, a GET-request for `/api/localEmployee?q=lastName:eq:Doe` will deliver all items of model **LocalEmployee** with property **lastName** equal given value **Doe**. The value may contain further colons.
 
-* `PUT /api/employee/12345678-1234-1234-1234-1234567890ab`  
-  `GET /api/employee/update/12345678-1234-1234-1234-1234567890ab`    
-  `GET /api/employee/write/12345678-1234-1234-1234-1234567890ab`  
+##### Complex Tests
 
-These requests are available for adjusting properties of existing items. The first version expects JSON-formatted object in request's body list names and new values of attributes to be updated. The latter two formats are provided e.g. for conveniently simulating updates in browser with names and values of attributes provided in query parameters.
-
-#### Checking Item
-
-* `HEAD /api/employee/12345678-1234-1234-1234-1234567890ab`  
-  `GET /api/employee/has/12345678-1234-1234-1234-1234567890ab`
-
-  These requests are checking whether some item is available or not. They don't return any properties of found item but some object in JSON format describing whether selected item exists or not.
-
-#### Creating Item
-
-* `POST /api/employee`  
-  `GET /api/employee/add`    
-  `GET /api/employee/create`  
-
-  With these requests new items may be created. Properties are provided JSON-formatted in request body in case of first version and in query parameters in the remaining variants. On success, the created item's UUID is returned in a JSON-formatted object.
-
-#### Deleting Item
-
-* `DELETE /api/employee/12345678-1234-1234-1234-1234567890ab`  
-  `GET /api/employee/delete/12345678-1234-1234-1234-1234567890ab`    
-  `GET /api/employee/remove/12345678-1234-1234-1234-1234567890ab`  
-
-  These requests remove a selected item. The response is a JSON-formatted object describing whether removing item succeeded or not.
-
-#### Listing All Items
-
-* `SEARCH /api/employee`  
-  `GET /api/employee`  
-
-  These requests unconditionally list all items available. Query parameters `offset` and `limit` can be used to fetch a slice of resulting list, only.
-
-#### Finding Items
-
-* `SEARCH /api/employee/:attribute/:operation/:value`  
-  `GET /api/employee/find/:attribute/:operation/:value`  
-
-  These requests list all items matching provided test. Query parameters `offset` and `limit` can be used to fetch a slice of matching items, only.
-  
-  The three segments `:attribute`, `:operation` and `:value` describe a test to be performed on all items of model. Succeeding items are considered matches to be included with resulting list. `:attribute` selects name of (basic, not computed) attribute to be tested on every existing item. `:operation` is the name of a unary or binary operation used as a test. On binary operations `:value` is compared with value of either existing item's attribute. On unary operations `:value` must be given to match the routing pattern but is ignored. These operations are available:
-  
-  | Name    | Operation                | Binary? |
-  | ------- | ------------------------ | ------- |
-  | eq      | is equal                 | yes     |
-  | noteq   | is not equal             | yes     |
-  | lt      | is less than             | yes     |
-  | lte     | is less than or equal    | yes     |
-  | gt      | is greater than          | yes     |
-  | gte     | is greater than or equal | yes     |
-  | null    | is not set               | no      |
-  | notnull | is set                   | no      |
-  | not     | is falsy                 | no      |
-
-## Defining Models in Extensions
-
-Installed extensions may provide the same set of files using subfolder **api/models**, too. They are discovered by Hitchy's bootstrap and obeyed by this plugin automatically.
+There will be more complex tests supported in future versions using different formats in query parameter `q`.
