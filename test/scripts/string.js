@@ -70,8 +70,19 @@ describe( "model containing just a string", () => {
 			} );
 	} );
 
-	it( "provides number of records on demand, too", () => {
+	it( "provides number of records when setting request header x-count, too", () => {
 		return GET( "/api/string", null, { "x-count": "1" } )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
+				res.data.items.should.be.an.Array().which.is.empty();
+				res.data.count.should.be.a.Number().and.equal( 0 );
+				res.headers.should.have.property( "x-count" ).which.is.a.String().and.equal( "0" );
+			} );
+	} );
+
+	it( "provides number of records when setting query parameter count, too", () => {
+		return GET( "/api/string?count=1" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -99,8 +110,19 @@ describe( "model containing just a string", () => {
 			} );
 	} );
 
-	it( "provides updated number of records on demand", () => {
+	it( "provides updated number of records on setting request header x-count", () => {
 		return GET( "/api/string", null, { "x-count": "1" } )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
+				res.data.items.should.be.an.Array().which.is.not.empty();
+				res.data.count.should.be.a.Number().and.equal( 1 );
+				res.headers.should.have.property( "x-count" ).which.is.a.String().and.equal( "1" );
+			} );
+	} );
+
+	it( "provides updated number of records on passing query parameter count", () => {
+		return GET( "/api/string?count=1" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );

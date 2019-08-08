@@ -239,7 +239,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 	function reqListMatches( req, res ) {
 		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing matching items" );
 
-		const { q: query = "", offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
+		const { q: query = "", offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 
 		if ( !query ) {
 			res.status( 400 ).json( { error: "missing query" } );
@@ -253,7 +253,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 		}
 
 		const [ , name, operation, value ] = parsed;
-		const meta = req.headers["x-count"] ? {} : null;
+		const meta = count || req.headers["x-count"] ? {} : null;
 
 		return model.find( {
 			[operation]: {
@@ -296,8 +296,8 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 	function reqListAll( req, res ) {
 		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing all items" );
 
-		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
-		const meta = req.headers["x-count"] ? {} : null;
+		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
+		const meta = count || req.headers["x-count"] ? {} : null;
 		return model.list( {
 			offset,
 			limit,
