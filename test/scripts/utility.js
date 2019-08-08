@@ -58,7 +58,7 @@ describe( "entries can be added", () => {
 	it( "is creating new record", () => {
 		return POST( "/api/string", { someString: "entry no. 0" } )
 			.then( res => {
-				res.should.have.status( 200 ).and.be.json();
+				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
@@ -79,7 +79,7 @@ describe( "entries can be added", () => {
 		for ( let index = 1, length = 30; index < length; index++ ) {
 			Promises[index] = POST( "/api/string", { someString: `entry no. ${index}` } )
 				.then( res => {
-					res.should.have.status( 200 ).and.be.json();
+					res.should.have.status( 201 ).and.be.json();
 				} );
 		}
 
@@ -126,7 +126,7 @@ describe( "entries can be added", () => {
 	it( "creates another record lacking property used to sort by before", () => {
 		return POST( "/api/string" )
 			.then( res => {
-				res.should.have.status( 200 ).and.be.json();
+				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 

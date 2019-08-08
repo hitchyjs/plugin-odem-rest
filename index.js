@@ -41,7 +41,7 @@ module.exports = function() {
 			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
 
 			return {
-				[source]: function( req, res, next ) {
+				[source]: ( req, res, next ) => {
 					res.setHeader( "Access-Control-Allow-Origin", "*" );
 					next();
 				}
@@ -52,14 +52,16 @@ module.exports = function() {
 
 			const modelNames = Object.keys( models );
 			const routes = new Map();
-			const urlPrefix = ( config.model || {} ).urlPrefix || "/api";
+			const modelConfig = config.model || {};
+			const urlPrefix = modelConfig.urlPrefix || "/api";
+			const convenience = modelConfig.convenience == null ? true : Boolean( modelConfig.convenience );
 
 			for ( let i = 0, numNames = modelNames.length; i < numNames; i++ ) {
 				const name = modelNames[i];
 				const routeName = pascalToKebab( name );
 				const model = models[name] || {};
 
-				addRoutesOnModel( routes, urlPrefix, routeName, model );
+				addRoutesOnModel( routes, urlPrefix, routeName, model, convenience );
 			}
 
 			return routes;
@@ -75,42 +77,39 @@ module.exports = function() {
  * @param {string} urlPrefix common prefix to use on every route regarding any model-related processing
  * @param {string} routeName name of model to be used in path name of request
  * @param {Model} model model instance
+ * @param {boolean} includeConvenienceRoutes set true to include additional set of routes for controlling all action via GET-requests
  * @returns {void}
  */
-function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
-	// implement non-REST-compliant rules to simplify manual control of data via browser
-	routes.set( "GET " + resolve( urlPrefix, routeName, "create" ), reqCreateItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "add" ), reqCreateItem );
+function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenienceRoutes ) {
+	const modelUrl = resolve( urlPrefix, routeName );
 
-	routes.set( "GET " + resolve( urlPrefix, routeName, "has", ":uuid" ), reqCheckItem );
-
-	routes.set( "GET " + resolve( urlPrefix, routeName, "replace", ":uuid" ), reqReplaceItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "update", ":uuid" ), reqModifyItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "write", ":uuid" ), reqModifyItem );
-
-	routes.set( "GET " + resolve( urlPrefix, routeName, "remove", ":uuid" ), reqRemoveItem );
-	routes.set( "GET " + resolve( urlPrefix, routeName, "delete", ":uuid" ), reqRemoveItem );
-
-	routes.set( "GET " + resolve( urlPrefix, routeName, "find" ), reqListMatches );
+	if ( includeConvenienceRoutes ) {
+		// implement non-REST-compliant rules to simplify manual control of data via browser
+		routes.set( "GET " + resolve( modelUrl, "create" ), reqCreateItem );
+		routes.set( "GET " + resolve( modelUrl, "write", ":uuid" ), reqModifyItem );
+		routes.set( "GET " + resolve( modelUrl, "replace", ":uuid" ), reqReplaceItem );
+		routes.set( "GET " + resolve( modelUrl, "has", ":uuid" ), reqCheckItem );
+		routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqRemoveItem );
+	}
 
 	// here comes the REST-compliant part
-	routes.set( "GET " + resolve( urlPrefix, routeName ), reqFetchItems );
-	routes.set( "GET " + resolve( urlPrefix, routeName, ":uuid" ), reqFetchItem );
+	routes.set( "GET " + resolve( modelUrl ), reqFetchItems );
+	routes.set( "GET " + resolve( modelUrl, ":uuid" ), reqFetchItem );
 
-	routes.set( "HEAD " + resolve( urlPrefix, routeName, ":uuid" ), reqCheckItem );
-	routes.set( "HEAD " + resolve( urlPrefix, routeName ), reqSuccess );
+	routes.set( "HEAD " + resolve( modelUrl, ":uuid" ), reqCheckItem );
+	routes.set( "HEAD " + resolve( modelUrl ), reqSuccess );
 	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), reqNotFound );
 
-	routes.set( "POST " + resolve( urlPrefix, routeName, ":uuid" ), reqError( 400, "new entry can not be created with uuid" ) );
-	routes.set( "POST " + resolve( urlPrefix, routeName ), reqCreateItem );
+	routes.set( "POST " + resolve( modelUrl, ":uuid" ), reqError( 405, "new entry can not be created with uuid" ) );
+	routes.set( "POST " + resolve( modelUrl ), reqCreateItem );
 
-	routes.set( "PUT " + resolve( urlPrefix, routeName, ":uuid" ), reqReplaceItem );
-	routes.set( "PUT " + resolve( urlPrefix, routeName ), reqError( 400, "PUT is not permited on collections" ) );
-	routes.set( "PATCH " + resolve( urlPrefix, routeName, ":uuid" ), reqModifyItem );
-	routes.set( "PATCH " + resolve( urlPrefix, routeName ), reqError( 400, "PATCH is not permited on collections" ) );
+	routes.set( "PUT " + resolve( modelUrl, ":uuid" ), reqReplaceItem );
+	routes.set( "PUT " + resolve( modelUrl ), reqError( 405, "PUT is not permitted on collections" ) );
+	routes.set( "PATCH " + resolve( modelUrl, ":uuid" ), reqModifyItem );
+	routes.set( "PATCH " + resolve( modelUrl ), reqError( 405, "PATCH is not permitted on collections" ) );
 
-	routes.set( "DELETE " + resolve( urlPrefix, routeName, ":uuid" ), reqRemoveItem );
-	routes.set( "DELETE " + resolve( urlPrefix, routeName ), reqError( 403, "DELETE is not permited on collections" ) );
+	routes.set( "DELETE " + resolve( modelUrl, ":uuid" ), reqRemoveItem );
+	routes.set( "DELETE " + resolve( modelUrl ), reqError( 405, "DELETE is not permitted on collections" ) );
 	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), reqError( 404, "no such collection" ) );
 
 
@@ -227,7 +226,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 			return undefined;
 		}
 
-		return ( req.query.query || req.query.q ? reqListMatches : reqListAll ).call( this, req, res );
+		return ( req.query.q ? reqListMatches : reqListAll ).call( this, req, res );
 	}
 
 	/**
@@ -240,9 +239,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 	function reqListMatches( req, res ) {
 		this.api.log( "hitchy:plugin:odem:rest" )( "got request listing matching items" );
 
-		const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
-		const query = req.query.query || req.query.q;
-		const meta = req.headers["x-count"] ? {} : null;
+		const { q: query = "", offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true } = req.query;
 
 		if ( !query ) {
 			res.status( 400 ).json( { error: "missing query" } );
@@ -256,6 +253,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 		}
 
 		const [ , operation, name, value ] = parsed;
+		const meta = req.headers["x-count"] ? {} : null;
 
 		return model.find( {
 			[operation]: {
@@ -357,7 +355,7 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model ) {
 
 				return item.save().then( saved => {
 					this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
-					res.json( { uuid: saved.uuid } );
+					res.status( 201 ).json( { uuid: saved.uuid } );
 				} )
 					.catch( error => {
 						this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );

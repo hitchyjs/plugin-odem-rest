@@ -106,7 +106,6 @@ describe( "REST-API", () => {
 	} );
 
 	describe( "POST /api/mixed", () => {
-
 		it( "creates new record assigning UUID automatically", () => {
 			return POST( "/api/mixed", {
 				myDateProp: "2019-08-01",
@@ -116,7 +115,7 @@ describe( "REST-API", () => {
 				myBooleanProp: true,
 			} )
 				.then( res => {
-					res.should.have.status( 200 ).and.be.json();
+					res.should.have.status( 201 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "uuid" )
 						.which.is.a.String().and.match( /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i );
@@ -144,7 +143,7 @@ describe( "REST-API", () => {
 				myBooleanProp: true,
 			} )
 				.then( res => {
-					res.should.have.status( 200 ).and.be.json();
+					res.should.have.status( 201 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "uuid" )
 						.which.is.a.String().and.match( /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i );
@@ -191,7 +190,7 @@ describe( "REST-API", () => {
 	} );
 
 	describe( "POST /api/mixed/:uuid", () => {
-		it( "is rejected with 400 when addressing particular item of collection", () => {
+		it( "is rejected with 405 when addressing particular item of collection", () => {
 			return POST( "/api/mixed/12345678-1234-1234-12341234567890ab", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
@@ -200,7 +199,7 @@ describe( "REST-API", () => {
 				myBooleanProp: true,
 			} )
 				.then( res => {
-					res.should.have.status( 400 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "error" )
 						.which.is.a.String().and.not.empty();
@@ -256,14 +255,14 @@ describe( "REST-API", () => {
 				myBooleanProp: true,
 			} )
 				.then( res => {
-					res.should.have.status( 400 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "error" )
 						.which.is.a.String().and.not.empty();
 				} );
 		} );
 
-		it( "is rejected with 400 when addressing collection and providing UUID as property of record to create", () => {
+		it( "is rejected with 405 when addressing collection and providing UUID as property of record to create", () => {
 			return PUT( "/api/mixed", {
 				uuid: "12345678-1234-1234-1234-1234567890ab",
 				myDateProp: "2019-08-01",
@@ -273,7 +272,7 @@ describe( "REST-API", () => {
 				myBooleanProp: true,
 			} )
 				.then( res => {
-					res.should.have.status( 400 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "error" )
 						.which.is.a.String().and.not.empty();
@@ -374,25 +373,25 @@ describe( "REST-API", () => {
 	} );
 
 	describe( "PATCH /api/mixed", () => {
-		it( "is rejected with 400 when addressing collection", () => {
+		it( "is rejected with 405 when addressing collection", () => {
 			return PATCH( "/api/mixed", {
 				myIntegerProp: 700,
 			} )
 				.then( res => {
-					res.should.have.status( 400 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "error" )
 						.which.is.a.String().and.not.empty();
 				} );
 		} );
 
-		it( "is rejected with 400 when addressing collection and providing UUID as property of record to create", () => {
+		it( "is rejected with 405 when addressing collection and providing UUID as property of record to create", () => {
 			return PATCH( "/api/mixed", {
 				uuid: "12345678-1234-1234-1234-1234567890ab",
 				myIntegerProp: 700,
 			} )
 				.then( res => {
-					res.should.have.status( 400 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.an.Object()
 						.which.has.property( "error" )
 						.which.is.a.String().and.not.empty();
@@ -511,10 +510,10 @@ describe( "REST-API", () => {
 	} );
 
 	describe( "DELETE /api/mixed", () => {
-		it( "is rejected with 403 when addressing existing collection", () => {
+		it( "is rejected with 405 when addressing existing collection", () => {
 			return DELETE( "/api/mixed" )
 				.then( res => {
-					res.should.have.status( 403 ).and.be.json();
+					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
 						.which.is.String().and.not.empty();
 				} );

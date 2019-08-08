@@ -84,7 +84,7 @@ describe( "model containing just a string", () => {
 	it( "is creating new record", () => {
 		return HitchyDev.query.post( "/api/string", { someString: "2018-08-08" } )
 			.then( res => {
-				res.should.have.status( 200 ).and.be.json();
+				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
