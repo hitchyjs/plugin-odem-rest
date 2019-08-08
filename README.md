@@ -98,14 +98,14 @@ The provided routes implement these actions:
 | HEAD | `/api/model` | Tests if selected model exists. |
 | HEAD | `/api/model/<uuid>` | Tests if selected item exists. |
 
-The API is accepting and returning data in JSON format.
+The API is accepting and returning data in JSON format. Any returned data is always an object. When fetching items this object contains single property `items` containing all fetched items as array.
 
 Response status code is used to indicate basic result of either requests.
 
 | Status | Reason |
 |---|---|
 | 200 | A request was successful. In case of HEAD-request the tested model or item exists. |
-| 201 | A POST request was successful in creating another item. |
+| 201 | A POST request was successful in creating another item. This isn't used when creating new item using PUT request, though. |
 | 400 | A given UUID is malformed. |
 | 404 | A requested model or item wasn't found. |
 | 405 | A given method isn't allowed on selected model or item. This is basically a more specific information related to performing some invalid request like trying to PATCH or DELETE a whole model instead of a single item. |
@@ -144,15 +144,6 @@ exports.model = {
 
 Whenever fetching a list of items using GET request on a model's URL there are additional options for controlling the retrieved list.
 
-#### Sorting
-
-Using query parameter `sortBy=lastName` a fetched list of items is sorted by values of named property (which is `lastName` in this example) in ascending order. By providing another query parameter `descending=1` the sorting is done in descending order.
-
-
-#### Slicing
-
-Query parameter `limit=n` is requesting to fetch at most **n** items. Parameter `offset=n` is requesting to skip **n** items before starting retrieval.
-
 
 #### Filtering
 
@@ -176,3 +167,15 @@ For example, a GET-request for `/api/localEmployee?q=lastName:eq:Doe` will deliv
 ##### Complex Tests
 
 There will be more complex tests supported in future versions using different formats in query parameter `q`.
+
+
+#### Sorting
+
+Using query parameter `sortBy=lastName` a fetched list of items is sorted by values of named property (which is `lastName` in this example) in ascending order. By providing another query parameter `descending=1` the sorting is done in descending order.
+
+
+#### Slicing
+
+Query parameter `limit=n` is requesting to fetch at most **n** items. Parameter `offset=n` is requesting to skip **n** items before starting retrieval. Slicing is applied after sorting items.
+
+When slicing this way only a subset of basically available items is fetched by intention. If you need to know the total number of available items when requesting a slice you can either set custom field `x-count` in request header or query parameter `count` to `1` or any other truthy value. This will have a slight negative impact on request performance, but causes delivery of the total number of matching items in a separate property `count` of response body as well as in response header named `x-count`.
