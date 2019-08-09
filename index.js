@@ -30,7 +30,7 @@
 
 const { posix: { resolve } } = require( "path" );
 
-const { UUID: { ptnUuid } } = require( "hitchy-plugin-odem" );
+const { Model, UUID: { ptnUuid } } = require( "hitchy-plugin-odem" );
 
 
 module.exports = function() {
@@ -76,41 +76,45 @@ module.exports = function() {
  *        route patterns into function handling requests matching that pattern
  * @param {string} urlPrefix common prefix to use on every route regarding any model-related processing
  * @param {string} routeName name of model to be used in path name of request
- * @param {Model} model model instance
+ * @param {class<Model>} model model class
  * @param {boolean} includeConvenienceRoutes set true to include additional set of routes for controlling all action via GET-requests
  * @returns {void}
  */
 function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenienceRoutes ) {
 	const modelUrl = resolve( urlPrefix, routeName );
 
+	const reqBadModel = model.prototype instanceof Model ? null : ( _, res ) => {
+		res.status( 500 ).json( { error: "incomplete discovery of model on server-side, looks like hitchy-plugin-odem issue" } );
+	};
+
 	if ( includeConvenienceRoutes ) {
 		// implement non-REST-compliant rules to simplify manual control of data via browser
-		routes.set( "GET " + resolve( modelUrl, "create" ), reqCreateItem );
-		routes.set( "GET " + resolve( modelUrl, "write", ":uuid" ), reqModifyItem );
-		routes.set( "GET " + resolve( modelUrl, "replace", ":uuid" ), reqReplaceItem );
-		routes.set( "GET " + resolve( modelUrl, "has", ":uuid" ), reqCheckItem );
-		routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqRemoveItem );
+		routes.set( "GET " + resolve( modelUrl, "create" ), reqBadModel || reqCreateItem );
+		routes.set( "GET " + resolve( modelUrl, "write", ":uuid" ), reqBadModel || reqModifyItem );
+		routes.set( "GET " + resolve( modelUrl, "replace", ":uuid" ), reqBadModel || reqReplaceItem );
+		routes.set( "GET " + resolve( modelUrl, "has", ":uuid" ), reqBadModel || reqCheckItem );
+		routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqBadModel || reqRemoveItem );
 	}
 
 	// here comes the REST-compliant part
-	routes.set( "GET " + resolve( modelUrl ), reqFetchItems );
-	routes.set( "GET " + resolve( modelUrl, ":uuid" ), reqFetchItem );
+	routes.set( "GET " + resolve( modelUrl ), reqBadModel || reqFetchItems );
+	routes.set( "GET " + resolve( modelUrl, ":uuid" ), reqBadModel || reqFetchItem );
 
-	routes.set( "HEAD " + resolve( modelUrl, ":uuid" ), reqCheckItem );
-	routes.set( "HEAD " + resolve( modelUrl ), reqSuccess );
-	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), reqNotFound );
+	routes.set( "HEAD " + resolve( modelUrl, ":uuid" ), reqBadModel || reqCheckItem );
+	routes.set( "HEAD " + resolve( modelUrl ), reqBadModel || reqSuccess );
+	routes.set( "HEAD " + resolve( urlPrefix, ":model" ), reqBadModel || reqNotFound );
 
-	routes.set( "POST " + resolve( modelUrl, ":uuid" ), reqError( 405, "new entry can not be created with uuid" ) );
-	routes.set( "POST " + resolve( modelUrl ), reqCreateItem );
+	routes.set( "POST " + resolve( modelUrl, ":uuid" ), reqBadModel || reqError( 405, "new entry can not be created with uuid" ) );
+	routes.set( "POST " + resolve( modelUrl ), reqBadModel || reqCreateItem );
 
-	routes.set( "PUT " + resolve( modelUrl, ":uuid" ), reqReplaceItem );
-	routes.set( "PUT " + resolve( modelUrl ), reqError( 405, "PUT is not permitted on collections" ) );
-	routes.set( "PATCH " + resolve( modelUrl, ":uuid" ), reqModifyItem );
-	routes.set( "PATCH " + resolve( modelUrl ), reqError( 405, "PATCH is not permitted on collections" ) );
+	routes.set( "PUT " + resolve( modelUrl, ":uuid" ), reqBadModel || reqReplaceItem );
+	routes.set( "PUT " + resolve( modelUrl ), reqBadModel || reqError( 405, "PUT is not permitted on collections" ) );
+	routes.set( "PATCH " + resolve( modelUrl, ":uuid" ), reqBadModel || reqModifyItem );
+	routes.set( "PATCH " + resolve( modelUrl ), reqBadModel || reqError( 405, "PATCH is not permitted on collections" ) );
 
-	routes.set( "DELETE " + resolve( modelUrl, ":uuid" ), reqRemoveItem );
-	routes.set( "DELETE " + resolve( modelUrl ), reqError( 405, "DELETE is not permitted on collections" ) );
-	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), reqError( 404, "no such collection" ) );
+	routes.set( "DELETE " + resolve( modelUrl, ":uuid" ), reqBadModel || reqRemoveItem );
+	routes.set( "DELETE " + resolve( modelUrl ), reqBadModel || reqError( 405, "DELETE is not permitted on collections" ) );
+	routes.set( "DELETE " + resolve( urlPrefix, ":model" ), reqBadModel || reqError( 404, "no such collection" ) );
 
 
 	/**
