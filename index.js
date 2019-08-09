@@ -41,7 +41,7 @@ module.exports = function() {
 			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
 
 			return {
-				[source]: ( req, res, next ) => {
+				[source]: ( _, res, next ) => {
 					res.setHeader( "Access-Control-Allow-Origin", "*" );
 					next();
 				}
@@ -230,6 +230,37 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 	}
 
 	/**
+	 * Parsing provided query and compiling it for Model.find().
+	 *
+	 * @param {string} query value of query parameter
+	 * @returns {object|undefined} compiled test description for Model.find(), undefined if no valid query was found
+	 */
+	function parseQuery( query ) {
+		const simpleTernary = /^([^:\s]+):between:([^:]+):([^:]+)$/i.exec( query );
+		if ( simpleTernary ) {
+			const [ , name, lower, upper ] = simpleTernary;
+
+			return { between: { name, lower, upper } };
+		}
+
+		const simpleBinary = /^([^:\s]+):([a-z]{2,}):(.*)$/i.exec( query );
+		if ( simpleBinary ) {
+			const [ , name, operation, value ] = simpleBinary;
+
+			return { [operation.toLowerCase()]: { name, value } };
+		}
+
+		const simpleUnary = /^([^:\s]+):((?:not)?null)$/i.exec( query );
+		if ( simpleUnary ) {
+			const [ , name, operation ] = simpleUnary;
+
+			return { [operation.toLowerCase()]: { name } };
+		}
+
+		return undefined;
+	}
+
+	/**
 	 * Handles request for listing all items of model.
 	 *
 	 * @param {IncomingMessage} req description of request
@@ -246,21 +277,15 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 			return undefined;
 		}
 
-		const parsed = /^([^:\s]+):([a-z]{2,}):(.*)$/.exec( query );
-		if ( !parsed ) {
-			res.status( 400 ).json( { error: "invalid query, use query=operation:name:value" } );
+		const parsedQuery = parseQuery( query );
+		if ( !parsedQuery ) {
+			res.status( 400 ).json( { error: "invalid query, e.g. use ?q=name:operation:value" } );
 			return undefined;
 		}
 
-		const [ , name, operation, value ] = parsed;
 		const meta = count || req.headers["x-count"] ? {} : null;
 
-		return model.find( {
-			[operation]: {
-				name,
-				value
-			}
-		}, { offset, limit, sortBy, sortAscendingly: !descending }, {
+		return model.find( parsedQuery, { offset, limit, sortBy, sortAscendingly: !descending }, {
 			metaCollector: meta,
 			loadRecords
 		} )

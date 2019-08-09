@@ -36,6 +36,17 @@ module.exports = {
 		myStringProp: {
 			type: "string",
 		},
+		myIndexedStringProp: {
+			type: "string",
+			index: true,
+		},
+		myNullableStringProp: {
+			type: "string",
+		},
+		myIndexedNullableStringProp: {
+			type: "string",
+			index: true,
+		},
 		myIntegerProp: {
 			type: "integer",
 		},

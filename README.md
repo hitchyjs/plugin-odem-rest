@@ -47,7 +47,7 @@ module.exports = {
 		},
 	},
 	computeds: {
-		fullName: function() {
+		fullName() {
 			return `${this.lastName}, ${this.firsName}`;
 		}
 	},
@@ -175,15 +175,26 @@ Alternatively the search query may comply with the pattern `name:operation` for 
 
 For example, a GET-request for `/api/localEmployee?q=lastName:null` will deliver all items of model **LocalEmployee** with unset property **lastName**.
 
+##### Simple Unary Tests
+
+Another kind of test operations are unary tests. A unary test is an operation which takes a single argument, only. This argument is the property's name the test is applied on. Related queries comply with the pattern `name:operation`.
+  
+| Name    | Test Operation                                                 |
+|---------|----------------------------------------------------------------|
+| null    | property's value is unset                                      |
+| notnull | property's value is set                                        |
+
+For example, a GET-request for `/api/localEmployee?q=paid:null` will deliver all items of model **LocalEmployee** with value of property **paid** unset.
+
 ##### Simple Ternary Tests
 
-Another kind of test operation are ternary tests. This refers to operations consisting of three parameters: the property's name and two values instead of one to compare that property's values with. Related queries comply with the pattern `name:operation:value:value`, hence using colon in first given value is not supported.
+A third type of test operations are ternary tests. This refers to operations consisting of three parameters: the property's name and two values instead of one to compare that property's values with. Related queries comply with the pattern `name:operation:value:value`, hence using colon in first given value is not supported.
   
 | Name    | Test Operation                                                 |
 |---------|----------------------------------------------------------------|
 | between | property's value is between the two given values (inclusively) |
 
-For example, a GET-request for `/api/localEmployee?q=age:between:20:40` will deliver all items of model **LocalEmployee** with value of property **age** in range of 20-40.
+For example, a GET-request for `/api/localEmployee?q=salary:between:2000:4000` will deliver all items of model **LocalEmployee** with value of property **salary** in range from 2000 to 4000.
 
 ##### Complex Tests
 
