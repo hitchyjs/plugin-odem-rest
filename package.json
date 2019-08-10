@@ -26,7 +26,7 @@
 		"hitchy-plugin-odem": "0.2.x"
 	},
 	"peerDependencies": {
-		"hitchy": "0.1.x"
+		"hitchy": "0.2.x"
 	},
 	"devDependencies": {
 		"eslint": "^6.1.0",
