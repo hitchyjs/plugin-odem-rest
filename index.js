@@ -371,8 +371,6 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					return undefined;
 				}
 
-				let ignoreUnloaded = false;
-
 				if ( record ) {
 					const names = Object.keys( record );
 					const numNames = names.length;
@@ -387,12 +385,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 							item.$properties[name] = record[name];
 						} else if ( computedList[name] ) {
 							item[name] = record[name];
-							ignoreUnloaded = true;
 						}
 					}
 				}
 
-				return item.save( { ignoreUnloaded } ).then( saved => {
+				return item.save().then( saved => {
 					this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
 					res.status( 201 ).json( { uuid: saved.uuid } );
 				} )
@@ -488,21 +485,34 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					const propNames = Object.keys( model.schema.props );
 					const numPropNames = propNames.length;
 
-					for ( let i = 0; i < numPropNames; i++ ) {
-						const propName = propNames[i];
+					const usedComputedNames = Object.keys( model.schema.computed )
+						.filter( name => record[name] != null );
+					const numComputedNames = usedComputedNames.length;
 
-						item.$properties[propName] = record[propName] || null;
-					}
+					if ( numComputedNames === 0 ) {
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							item.$properties[propName] = record[propName] || null;
+						}
+					} else {
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							item.$properties[propName] = null;
+						}
 
-					const computedNames = Object.keys( model.schema.computed );
-					const numComputedNames = computedNames.length;
+						item.$properties.$context.commit();
 
-					for ( let i = 0; i < numComputedNames; i++ ) {
-						const computedName = computedNames[i];
-						const value = record[computedName];
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							const value = record[propName];
+							if ( value ) {
+								item.$properties[propName] = value;
+							}
+						}
 
-						if ( value != null ) {
-							item[computedName] = value;
+						for ( let i = 0; i < numComputedNames; i++ ) {
+							const computedName = usedComputedNames[i];
+							item[computedName] = record[computedName];
 						}
 					}
 

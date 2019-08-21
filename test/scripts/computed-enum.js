@@ -40,7 +40,9 @@ require( "should-http" );
 describe( "model containing just a computed enum", () => {
 	let server;
 
-	before( "starting hitchy server", () => {
+	before( "starting hitchy server", function() {
+		this.timeout( 5000 );
+
 		return Start( {
 			extensionFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
