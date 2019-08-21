@@ -36,7 +36,7 @@ module.exports = {
 	},
 	computed: {
 		state( caption ) {
-			const stateList = [ "created", "processing", "finished" ];
+			const stateList = [ "created", "prepared", "processing", "finished" ];
 
 			if ( caption == null ) {
 				// Read-access:

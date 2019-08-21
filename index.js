@@ -371,18 +371,28 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					return undefined;
 				}
 
+				let ignoreUnloaded = false;
+
 				if ( record ) {
-					const propNames = Object.keys( record );
-					const numNames = propNames.length;
+					const names = Object.keys( record );
+					const numNames = names.length;
+
+					const propList = model.schema.props;
+					const computedList = model.schema.computed;
 
 					for ( let i = 0; i < numNames; i++ ) {
-						const propName = propNames[i];
+						const name = names[i];
 
-						item.$properties[propName] = record[propName];
+						if ( propList[name] ) {
+							item.$properties[name] = record[name];
+						} else if ( computedList[name] ) {
+							item[name] = record[name];
+							ignoreUnloaded = true;
+						}
 					}
 				}
 
-				return item.save().then( saved => {
+				return item.save( { ignoreUnloaded } ).then( saved => {
 					this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
 					res.status( 201 ).json( { uuid: saved.uuid } );
 				} )
@@ -424,16 +434,19 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 				] )
 					.then( ( [ loaded, record ] ) => {
 						if ( record ) {
-							const propNames = Object.keys( record );
-							const numNames = propNames.length;
+							const names = Object.keys( record );
+							const numNames = names.length;
+
+							const propList = model.schema.props;
+							const computedList = model.schema.computed;
 
 							for ( let i = 0; i < numNames; i++ ) {
-								const propName = propNames[i];
+								const name = names[i];
 
-								if ( model.schema.props[propName] ) {
-									loaded.$properties[propName] = record[propName];
-								} else if ( model.schema.computed[propName] ) {
-									loaded[propName] = record[propName];
+								if ( propList[name] ) {
+									loaded.$properties[name] = record[name];
+								} else if ( computedList[name] ) {
+									loaded[name] = record[name];
 								}
 							}
 						}
@@ -473,17 +486,26 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 			.then( ( [ exists, record ] ) => {
 				return ( exists ? item.load() : Promise.resolve() ).then( () => {
 					const propNames = Object.keys( model.schema.props );
-					const numNames = propNames.length;
+					const numPropNames = propNames.length;
 
-					for ( let i = 0; i < numNames; i++ ) {
+					for ( let i = 0; i < numPropNames; i++ ) {
 						const propName = propNames[i];
 
-						if ( model.schema.props[propName] ) {
-							item.$properties[propName] = record[propName] || null;
-						} else if ( model.schema.computed[propName] ) {
-							item[propName] = record[propName] || null;
+						item.$properties[propName] = record[propName] || null;
+					}
+
+					const computedNames = Object.keys( model.schema.computed );
+					const numComputedNames = computedNames.length;
+
+					for ( let i = 0; i < numComputedNames; i++ ) {
+						const computedName = computedNames[i];
+						const value = record[computedName];
+
+						if ( value != null ) {
+							item[computedName] = value;
 						}
 					}
+
 					return item.save( { ignoreUnloaded: !exists } );
 				} );
 			} )
