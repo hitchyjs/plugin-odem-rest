@@ -430,7 +430,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 							for ( let i = 0; i < numNames; i++ ) {
 								const propName = propNames[i];
 
-								loaded.$properties[propName] = record[propName];
+								if ( model.schema.props[propName] ) {
+									loaded.$properties[propName] = record[propName];
+								} else if ( model.schema.computed[propName] ) {
+									loaded[propName] = record[propName];
+								}
 							}
 						}
 
@@ -474,7 +478,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					for ( let i = 0; i < numNames; i++ ) {
 						const propName = propNames[i];
 
-						item.$properties[propName] = record[propName] || null;
+						if ( model.schema.props[propName] ) {
+							item.$properties[propName] = record[propName] || null;
+						} else if ( model.schema.computed[propName] ) {
+							item[propName] = record[propName] || null;
+						}
 					}
 					return item.save( { ignoreUnloaded: !exists } );
 				} );
