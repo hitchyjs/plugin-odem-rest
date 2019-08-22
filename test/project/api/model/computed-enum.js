@@ -47,7 +47,7 @@ module.exports = {
 
 			// Write-access:
 			const n = stateList.indexOf( caption );
-			this.stateEnum = n === -1 ? null : n;
+			this.stateEnum = n >= 0 ? n : null;
 		},
 	},
 };

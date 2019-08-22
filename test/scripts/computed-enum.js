@@ -136,7 +136,7 @@ describe( "model containing just a computed enum", () => {
 			} );
 	} );
 
-	it( "updates previously created record by setting computed property", () => {
+	it( "updates previously created record by setting computed property (PATCH)", () => {
 		return GET( "/api/computed-enum" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -157,6 +157,32 @@ describe( "model containing just a computed enum", () => {
 								res3.data.items[0].should.have.properties( "stateEnum", "state" );
 								res3.data.items[0].stateEnum.should.equal( 2, "expected stateEnum to have changed" );
 								res3.data.items[0].state.should.equal( "processing" );
+							} );
+					} );
+			} );
+	} );
+
+	it( "updates previously created record by setting computed property (GET)", () => {
+		return GET( "/api/computed-enum" )
+			.then( res => {
+				res.should.have.status( 200 ).and.be.json();
+				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
+
+				const uuid = res.data.items[0].uuid;
+
+				return GET( `/api/computed-enum/write/${uuid}?state=created` )
+					.then( res2 => {
+						res2.should.have.status( 200 ).and.be.json();
+
+						return GET( "/api/computed-enum" )
+							.then( res3 => {
+								res3.should.have.status( 200 ).and.be.json();
+								res3.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
+
+								res3.data.items[0].should.have.property( "uuid" ).which.is.equal( uuid );
+								res3.data.items[0].should.have.properties( "stateEnum", "state" );
+								res3.data.items[0].stateEnum.should.equal( 0, "expected stateEnum to have changed" );
+								res3.data.items[0].state.should.equal( "created" );
 							} );
 					} );
 			} );
