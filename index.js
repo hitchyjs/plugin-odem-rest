@@ -372,13 +372,20 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 				}
 
 				if ( record ) {
-					const propNames = Object.keys( record );
-					const numNames = propNames.length;
+					const names = Object.keys( record );
+					const numNames = names.length;
+
+					const propList = model.schema.props;
+					const computedList = model.schema.computed;
 
 					for ( let i = 0; i < numNames; i++ ) {
-						const propName = propNames[i];
+						const name = names[i];
 
-						item.$properties[propName] = record[propName];
+						if ( propList[name] ) {
+							item.$properties[name] = record[name];
+						} else if ( computedList[name] ) {
+							item[name] = record[name];
+						}
 					}
 				}
 
@@ -424,13 +431,20 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 				] )
 					.then( ( [ loaded, record ] ) => {
 						if ( record ) {
-							const propNames = Object.keys( record );
-							const numNames = propNames.length;
+							const names = Object.keys( record );
+							const numNames = names.length;
+
+							const propList = model.schema.props;
+							const computedList = model.schema.computed;
 
 							for ( let i = 0; i < numNames; i++ ) {
-								const propName = propNames[i];
+								const name = names[i];
 
-								loaded.$properties[propName] = record[propName];
+								if ( propList[name] ) {
+									loaded.$properties[name] = record[name];
+								} else if ( computedList[name] ) {
+									loaded[name] = record[name];
+								}
 							}
 						}
 
@@ -469,13 +483,39 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 			.then( ( [ exists, record ] ) => {
 				return ( exists ? item.load() : Promise.resolve() ).then( () => {
 					const propNames = Object.keys( model.schema.props );
-					const numNames = propNames.length;
+					const numPropNames = propNames.length;
 
-					for ( let i = 0; i < numNames; i++ ) {
-						const propName = propNames[i];
+					const usedComputedNames = Object.keys( model.schema.computed )
+						.filter( name => record[name] != null );
+					const numComputedNames = usedComputedNames.length;
 
-						item.$properties[propName] = record[propName] || null;
+					if ( numComputedNames === 0 ) {
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							item.$properties[propName] = record[propName] || null;
+						}
+					} else {
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							item.$properties[propName] = null;
+						}
+
+						item.$properties.$context.commit();
+
+						for ( let i = 0; i < numPropNames; i++ ) {
+							const propName = propNames[i];
+							const value = record[propName];
+							if ( value ) {
+								item.$properties[propName] = value;
+							}
+						}
+
+						for ( let i = 0; i < numComputedNames; i++ ) {
+							const computedName = usedComputedNames[i];
+							item[computedName] = record[computedName];
+						}
 					}
+
 					return item.save( { ignoreUnloaded: !exists } );
 				} );
 			} )
