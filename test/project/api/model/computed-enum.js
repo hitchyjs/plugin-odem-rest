@@ -40,14 +40,14 @@ module.exports = {
 
 			if ( caption == null ) {
 				// Read-access:
-				return this.stateEnum != null && this.stateEnum >= 0 && this.stateEnum < stateList.length
-					? stateList[this.stateEnum]
-					: null;
+				return stateList[this.stateEnum] || null;
 			}
 
 			// Write-access:
 			const n = stateList.indexOf( caption );
-			this.stateEnum = n >= 0 ? n : null;
+			this.stateEnum = n > -1 ? n : null;
+
+			return undefined;
 		},
 	},
 };

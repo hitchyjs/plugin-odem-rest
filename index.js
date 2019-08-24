@@ -375,15 +375,15 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					const names = Object.keys( record );
 					const numNames = names.length;
 
-					const propList = model.schema.props;
-					const computedList = model.schema.computed;
+					const definedProps = model.schema.props;
+					const definedComputed = model.schema.computed;
 
 					for ( let i = 0; i < numNames; i++ ) {
 						const name = names[i];
 
-						if ( propList[name] ) {
+						if ( definedProps[name] ) {
 							item.$properties[name] = record[name];
-						} else if ( computedList[name] ) {
+						} else if ( definedComputed[name] ) {
 							item[name] = record[name];
 						}
 					}
@@ -392,11 +392,11 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 				return item.save().then( saved => {
 					this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
 					res.status( 201 ).json( { uuid: saved.uuid } );
-				} )
-					.catch( error => {
-						this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );
-						res.status( 500 ).json( { error: error.message } );
-					} );
+				} );
+			} )
+			.catch( error => {
+				this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -434,15 +434,15 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 							const names = Object.keys( record );
 							const numNames = names.length;
 
-							const propList = model.schema.props;
-							const computedList = model.schema.computed;
+							const definedProps = model.schema.props;
+							const definedComputed = model.schema.computed;
 
 							for ( let i = 0; i < numNames; i++ ) {
 								const name = names[i];
 
-								if ( propList[name] ) {
+								if ( definedProps[name] ) {
 									loaded.$properties[name] = record[name];
-								} else if ( computedList[name] ) {
+								} else if ( definedComputed[name] ) {
 									loaded[name] = record[name];
 								}
 							}
@@ -451,12 +451,12 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 						return loaded.save()
 							.then( saved => {
 								res.json( saved.toObject() );
-							} )
-							.catch( error => {
-								this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
-								res.status( 500 ).json( { error: error.message } );
 							} );
 					} );
+			} )
+			.catch( error => {
+				this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
+				res.status( 500 ).json( { error: error.message } );
 			} );
 	}
 
@@ -485,35 +485,32 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 					const propNames = Object.keys( model.schema.props );
 					const numPropNames = propNames.length;
 
-					const usedComputedNames = Object.keys( model.schema.computed )
-						.filter( name => record[name] != null );
-					const numComputedNames = usedComputedNames.length;
+					const computedNames = Object.keys( model.schema.computed );
+					const numComputedNames = computedNames.length;
 
-					if ( numComputedNames === 0 ) {
-						for ( let i = 0; i < numPropNames; i++ ) {
-							const propName = propNames[i];
-							item.$properties[propName] = record[propName] || null;
-						}
-					} else {
-						for ( let i = 0; i < numPropNames; i++ ) {
-							const propName = propNames[i];
-							item.$properties[propName] = null;
-						}
+					// drop all properties
+					for ( let i = 0; i < numPropNames; i++ ) {
+						const propName = propNames[i];
+						item.$properties[propName] = null;
+					}
 
-						item.$properties.$context.commit();
+					// commit changes of properties to prevent invalid
+					// warning/error on re-assigning
+					item.$properties.$context.commit();
 
-						for ( let i = 0; i < numPropNames; i++ ) {
-							const propName = propNames[i];
-							const value = record[propName];
-							if ( value ) {
-								item.$properties[propName] = value;
-							}
+					// assign all posted actual properties
+					for ( let i = 0; i < numPropNames; i++ ) {
+						const propName = propNames[i];
+						const value = record[propName];
+						if ( value != null ) {
+							item.$properties[propName] = value;
 						}
+					}
 
-						for ( let i = 0; i < numComputedNames; i++ ) {
-							const computedName = usedComputedNames[i];
-							item[computedName] = record[computedName];
-						}
+					// assign all posted computed properties
+					for ( let i = 0; i < numComputedNames; i++ ) {
+						const computedName = computedNames[i];
+						item[computedName] = record[computedName];
 					}
 
 					return item.save( { ignoreUnloaded: !exists } );

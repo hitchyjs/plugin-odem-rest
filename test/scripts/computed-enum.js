@@ -37,7 +37,7 @@ require( "should" );
 require( "should-http" );
 
 
-describe( "model containing just a computed enum", () => {
+describe( "model containing a computed enum", () => {
 	let server;
 
 	before( "starting hitchy server", function() {
