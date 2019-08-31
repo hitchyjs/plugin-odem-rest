@@ -300,7 +300,7 @@ describe( "entries can be added", () => {
 					.which.is.an.Array()
 					.which.has.length( 0 + 1 ); // one extra item has been POSTed w/o any properties before
 
-				return GET( "/api/mixed?q=myIndexedStringProp:null" )
+				return GET( "/api/mixed?q=myIndexedStringProp:null" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -309,7 +309,7 @@ describe( "entries can be added", () => {
 					.and.has.property( "items" )
 					.which.is.an.Array().which.has.length( 0 + 1 ); // including that extra item mentioned above
 
-				return GET( "/api/mixed?q=myNullableStringProp:null" )
+				return GET( "/api/mixed?q=myNullableStringProp:null" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -318,7 +318,7 @@ describe( "entries can be added", () => {
 					.and.has.property( "items" )
 					.which.is.an.Array().which.has.length( 15 + 1 ); // including that extra item mentioned above
 
-				return GET( "/api/mixed?q=myIndexedNullableStringProp:null" )
+				return GET( "/api/mixed?q=myIndexedNullableStringProp:null" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -339,7 +339,7 @@ describe( "entries can be added", () => {
 					.which.is.an.Array()
 					.which.has.length( 30 );
 
-				return GET( "/api/mixed?q=myIndexedStringProp:notnull" )
+				return GET( "/api/mixed?q=myIndexedStringProp:notnull" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -348,7 +348,7 @@ describe( "entries can be added", () => {
 					.and.has.property( "items" )
 					.which.is.an.Array().which.has.length( 30 );
 
-				return GET( "/api/mixed?q=myNullableStringProp:notnull" )
+				return GET( "/api/mixed?q=myNullableStringProp:notnull" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
@@ -357,7 +357,7 @@ describe( "entries can be added", () => {
 					.and.has.property( "items" )
 					.which.is.an.Array().which.has.length( 15 );
 
-				return GET( "/api/mixed?q=myIndexedNullableStringProp:notnull" )
+				return GET( "/api/mixed?q=myIndexedNullableStringProp:notnull" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
