@@ -294,16 +294,13 @@ function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenien
 			loadRecords
 		} )
 			.then( matches => {
-				if ( meta ) {
-					res.set( "x-count", meta.count );
-				}
-
 				const result = {
-					items: matches,
+					items: matches.map( m => m.toObject() ),
 				};
 
 				if ( meta ) {
-					result.count = meta.count;
+					res.set( "x-count", meta.count );
+					result.count = meta.count || 0;
 				}
 
 				res.json( result );
