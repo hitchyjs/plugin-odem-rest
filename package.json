@@ -1,6 +1,6 @@
 {
 	"name": "hitchy-plugin-odem-rest",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "common hitchy extension adding support for odem",
 	"main": "index.js",
 	"scripts": {
