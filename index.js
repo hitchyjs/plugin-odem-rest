@@ -38,7 +38,7 @@ module.exports = function() {
 
 	return {
 		policies() {
-			const source = "ALL " + ( ( this.runtime.config.model || {} ).urlPrefix || "/api" );
+			const source = "ALL " + ( ( this.config.model || {} ).urlPrefix || "/api" );
 
 			return {
 				[source]: ( _, res, next ) => {
@@ -48,7 +48,7 @@ module.exports = function() {
 			};
 		},
 		blueprints() {
-			const { runtime: { models, config } } = this;
+			const { runtime: { models }, config } = this;
 
 			const modelNames = Object.keys( models );
 			const routes = new Map();
