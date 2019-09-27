@@ -42,7 +42,7 @@ describe( "model containing just a date", () => {
 
 	before( "starting hitchy server", () => {
 		return HitchyDev.start( {
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
 				// debug: true,

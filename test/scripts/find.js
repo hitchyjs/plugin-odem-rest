@@ -42,7 +42,7 @@ describe( "A simple data model", () => {
 
 	before( "starting hitchy server", () => {
 		return Start( {
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
 				debug: false,

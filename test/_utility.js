@@ -37,7 +37,7 @@ const Hitchy = require( "hitchy/tools/test" );
 module.exports = {
 	/**
 	 * Starts Hitchy server exposing project in provided folder and loads
-	 * extensions from explicitly listed folders.
+	 * plugins from explicitly listed folders.
 	 *
 	 * @param {object} options custom options to pass into Hitchy
 	 * @returns {Promise<Server>} promises started server instance of Hitchy
@@ -45,8 +45,8 @@ module.exports = {
 	start( options = {} ) {
 		return Hitchy.startServer( HitchyNode( Object.assign( {
 			projectFolder: Path.resolve( __dirname, "project" ),
-			extensionsFolder: Path.resolve( __dirname, ".." ),
-			explicitExtensions: [
+			pluginsFolder: Path.resolve( __dirname, ".." ),
+			explicitplugins: [
 				Path.resolve( __dirname, ".." ),
 			],
 		}, options ) ) );

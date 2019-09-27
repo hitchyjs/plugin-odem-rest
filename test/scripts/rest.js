@@ -50,7 +50,7 @@ describe( "REST-API", () => {
 
 	before( "starting hitchy server", () => {
 		return start( {
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
 				debug: false,

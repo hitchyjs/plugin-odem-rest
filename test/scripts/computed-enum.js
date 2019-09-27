@@ -44,7 +44,7 @@ describe( "model containing a computed enum", () => {
 		this.timeout( 5000 );
 
 		return Start( {
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
 			options: {
 				// debug: true,
