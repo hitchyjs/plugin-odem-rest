@@ -1,6 +1,6 @@
 {
 	"name": "hitchy-plugin-odem-rest",
-	"version": "0.3.5",
+	"version": "0.4.0",
 	"description": "common hitchy extension adding support for odem",
 	"main": "index.js",
 	"scripts": {
@@ -21,11 +21,9 @@
 		"url": "https://github.com/hitchyjs/plugin-odem-rest/issues"
 	},
 	"homepage": "https://github.com/hitchyjs/plugin-odem-rest#readme",
-	"dependencies": {
-		"hitchy-plugin-odem": "^0.4.5"
-	},
 	"peerDependencies": {
-		"hitchy": "^0.4.3"
+		"hitchy": "^0.4.3",
+		"hitchy-plugin-odem": "^0.4.5"
 	},
 	"devDependencies": {
 		"eslint": "^6.5.1",
