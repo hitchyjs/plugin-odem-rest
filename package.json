@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"style": "eslint .",
-		"test": "mocha --ui=tdd test/**/*.js"
+		"test": "hitchy-pm odem --exec mocha --ui=tdd test/**/*.js"
 	},
 	"repository": {
 		"type": "git",
