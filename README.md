@@ -12,10 +12,15 @@ This plugin is defining blueprint routes for accessing data managed in ODM using
 In your Hitchy-based application run
 
 ```bash
-npm i hitchy-plugin-odem-rest
+npm i hitchy-plugin-odem-rest hitchy-plugin-odem
 ```
 
-This will install this plugin and the underlying [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem) implicitly. Thus you don't have to add it as a dependency explicitly.
+The command is installing this plugin and the additionally required [hitchy-plugin-odem](https://www.npmjs.com/package/hitchy-plugin-odem). 
+
+:::warning Compatibility  
+Starting with version 0.4.0 the latter plugin must be installed 
+explicitly.  
+::: 
 
 ## Usage
 
@@ -46,7 +51,7 @@ module.exports = {
 			type: "boolean",
 		},
 	},
-	computeds: {
+	computed: {
 		fullName() {
 			return `${this.lastName}, ${this.firsName}`;
 		}
