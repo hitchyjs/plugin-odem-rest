@@ -159,7 +159,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqCheckItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request checking if some item exists" );
+			this.api.log( "hitchy:odem:rest" )( "got request checking if some item exists" );
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -174,7 +174,7 @@ module.exports = function() {
 					res.status( exists ? 200 : 404 ).send();
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "checking %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "checking %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -187,7 +187,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqFetchItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request fetching some item" );
+			this.api.log( "hitchy:odem:rest" )( "got request fetching some item" );
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -200,7 +200,7 @@ module.exports = function() {
 			return item.load()
 				.then( loaded => res.json( loaded.toObject() ) )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "fetching %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "fetching %s:", routeName, error );
 					switch ( error.code ) {
 						case "ENOENT" : {
 							res.status( 404 ).json( { error: "selected item not found" } );
@@ -222,7 +222,7 @@ module.exports = function() {
 		 * @returns {Promise} promises response sent
 		 */
 		function reqFetchItems( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request fetching items" );
+			this.api.log( "hitchy:odem:rest" )( "got request fetching items" );
 			if ( req.headers["x-list-as-array"] ) {
 				res.status( 400 ).json( { error: "fetching items as array is deprecated for security reasons" } );
 				return undefined;
@@ -270,7 +270,7 @@ module.exports = function() {
 		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqListMatches( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request listing matching items" );
+			this.api.log( "hitchy:odem:rest" )( "got request listing matching items" );
 
 			const { q: query = "", offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 
@@ -304,7 +304,7 @@ module.exports = function() {
 					res.json( result );
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "querying %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "querying %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -318,7 +318,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqListAll( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request listing all items" );
+			this.api.log( "hitchy:odem:rest" )( "got request listing all items" );
 
 			const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 			const meta = count || req.headers["x-count"] ? {} : null;
@@ -341,7 +341,7 @@ module.exports = function() {
 					res.json( result );
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "listing %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "listing %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -354,14 +354,14 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqCreateItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request creating item" );
+			this.api.log( "hitchy:odem:rest" )( "got request creating item" );
 
 			const item = new model(); // eslint-disable-line new-cap
 
 			return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
 				.then( record => {
 					if ( record.uuid ) {
-						this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, "new entry can not be created with uuid" );
+						this.api.log( "hitchy:odem:rest" )( "creating %s:", routeName, "new entry can not be created with uuid" );
 						res.status( 400 ).json( { error: "new entry can not be created with uuid" } );
 						return undefined;
 					}
@@ -385,12 +385,12 @@ module.exports = function() {
 					}
 
 					return item.save().then( saved => {
-						this.api.log( "hitchy:plugin:odem:rest" )( "created %s with %s", routeName, saved.uuid );
+						this.api.log( "hitchy:odem:rest" )( "created %s with %s", routeName, saved.uuid );
 						res.status( 201 ).json( { uuid: saved.uuid } );
 					} );
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "creating %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "creating %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -403,7 +403,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqModifyItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request to modify some item" );
+			this.api.log( "hitchy:odem:rest" )( "got request to modify some item" );
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -450,7 +450,7 @@ module.exports = function() {
 						} );
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "updating %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -464,7 +464,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqReplaceItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request replacing some item" );
+			this.api.log( "hitchy:odem:rest" )( "got request replacing some item" );
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -515,7 +515,7 @@ module.exports = function() {
 					res.json( { uuid: saved.uuid } );
 				} )
 				.catch( error => {
-					this.api.log( "hitchy:plugin:odem:rest" )( "updating %s:", routeName, error );
+					this.api.log( "hitchy:odem:rest" )( "updating %s:", routeName, error );
 					res.status( 500 ).json( { error: error.message } );
 				} );
 		}
@@ -528,7 +528,7 @@ module.exports = function() {
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqRemoveItem( req, res ) {
-			this.api.log( "hitchy:plugin:odem:rest" )( "got request removing some item" );
+			this.api.log( "hitchy:odem:rest" )( "got request removing some item" );
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -548,12 +548,12 @@ module.exports = function() {
 								action: "remove"
 							} ) )
 							.catch( error => {
-								this.api.log( "hitchy:plugin:odem:rest" )( "removing %s:", routeName, error );
+								this.api.log( "hitchy:odem:rest" )( "removing %s:", routeName, error );
 								res.status( 500 ).json( { error: error.message } );
 							} );
 					}
 
-					this.api.log( "hitchy:plugin:odem:rest" )( "request for removing missing %s ignored", routeName );
+					this.api.log( "hitchy:odem:rest" )( "request for removing missing %s ignored", routeName );
 					res.status( 404 ).json( { error: "no such entry" } );
 
 					return undefined;
