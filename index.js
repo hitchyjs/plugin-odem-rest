@@ -94,6 +94,8 @@ module.exports = function() {
 			routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqBadModel || reqRemoveItem );
 		}
 
+		routes.set( "GET " + resolve( modelUrl, "schema" ), reqBadModel || reqFetchSchema );
+
 		// here comes the REST-compliant part
 		routes.set( "GET " + resolve( modelUrl ), reqBadModel || reqFetchItems );
 		routes.set( "GET " + resolve( modelUrl, ":uuid" ), reqBadModel || reqFetchItem );
@@ -148,6 +150,26 @@ module.exports = function() {
 			return ( _, res ) => {
 				res.status( code ).json( { error: message } );
 			};
+		}
+
+		/**
+		 * Handles request for fetching schema of selected model.
+		 *
+		 * @param {IncomingMessage} req description of request
+		 * @param {ServerResponse} res API for creating response
+		 * @returns {Promise} promises request processed successfully
+		 */
+		function reqFetchSchema( req, res ) {
+			this.api.log( "hitchy:odem:rest" )( "got request fetching schema" );
+
+			const original = model.schema;
+			const copy = {
+				name: model.name,
+				props: original.props,
+				computed: Object.keys( original.computed ),
+			};
+
+			return res.json( copy.toObject() );
 		}
 
 		/**
