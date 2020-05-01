@@ -52,6 +52,75 @@ describe( "REST-API", () => {
 	after( HitchyDev.after( ctx ) );
 
 
+	describe( "GET /api/mixed/schema", () => {
+		it( "delivers successful result with schema of selected model", () => {
+			return ctx.get( "/api/mixed/schema" )
+				.then( res => {
+					res.should.have.status( 200 ).and.be.json();
+					res.data.should.be.an.Object().which.has.size( 3 );
+					res.data.should.have.property( "props" ).which.is.an.Object();
+					res.data.should.have.property( "computed" ).which.is.an.Array();
+					res.data.should.have.property( "name" ).which.is.a.String();
+
+					res.headers.should.not.have.property( "x-count" );
+
+					Object.keys( res.data.props ).should.be.deepEqual( Object.keys( require( "../project/api/model/mixed" ).props ) );
+
+					return ctx.get( "/api/string/schema" );
+				} )
+				.then( res => {
+					res.should.have.status( 200 ).and.be.json();
+					res.data.should.be.an.Object().which.has.size( 3 );
+					res.data.should.have.property( "props" ).which.is.an.Object();
+					res.data.should.have.property( "computed" ).which.is.an.Array();
+					res.data.should.have.property( "name" ).which.is.a.String();
+
+					res.headers.should.not.have.property( "x-count" );
+
+					Object.keys( res.data.props ).should.be.deepEqual( Object.keys( require( "../project/api/model/string" ).props ) );
+				} );
+		} );
+
+		it( "works with GET, only", () => {
+			return ctx.post( "/api/mixed/schema" )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.not.have.property( "props" );
+					res.data.should.not.have.property( "computed" );
+					res.data.should.not.have.property( "name" );
+
+					return ctx.put( "/api/mixed/schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.not.have.property( "props" );
+					res.data.should.not.have.property( "computed" );
+					res.data.should.not.have.property( "name" );
+
+					return ctx.delete( "/api/mixed/schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.not.have.property( "props" );
+					res.data.should.not.have.property( "computed" );
+					res.data.should.not.have.property( "name" );
+
+					return ctx.patch( "/api/mixed/schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.not.have.property( "props" );
+					res.data.should.not.have.property( "computed" );
+					res.data.should.not.have.property( "name" );
+
+					return ctx.head( "/api/mixed/schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+				} );
+		} );
+	} );
+
 	describe( "GET /api/mixed", () => {
 		it( "delivers successful result with empty list of matches", () => {
 			return ctx.get( "/api/mixed" )

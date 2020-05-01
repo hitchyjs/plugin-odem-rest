@@ -169,7 +169,7 @@ module.exports = function() {
 				computed: Object.keys( original.computed ),
 			};
 
-			return res.json( copy.toObject() );
+			return res.json( copy );
 		}
 
 		/**
