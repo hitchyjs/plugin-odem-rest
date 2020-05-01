@@ -31,33 +31,28 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
-const { start: Start, stop: Stop, query: { get: GET, post: POST } } = require( "hitchy-server-dev-tools" );
+const HitchyDev = require( "hitchy-server-dev-tools" );
 
 require( "should" );
 require( "should-http" );
 
 
 describe( "A simple data model", () => {
-	let server;
+	const ctx = {};
 
-	before( "starting hitchy server", () => {
-		return Start( {
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping hitchy server", () => Stop( server ) );
+	after( HitchyDev.after( ctx ) );
 
 
 	it( "can be populated with record", () => {
-		return POST( "/api/simple", {
+		return ctx.post( "/api/simple", {
 			card: "13",
 			user: "55f5365c-e1e7-4018-8051-dfae5a276dde",
 		} )
@@ -67,7 +62,7 @@ describe( "A simple data model", () => {
 	} );
 
 	it( "lists created record now", () => {
-		return GET( "/api/simple" )
+		return ctx.get( "/api/simple" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().and.has.length( 1 );
@@ -79,7 +74,7 @@ describe( "A simple data model", () => {
 	} );
 
 	it( "lists record when searching by card", () => {
-		return GET( "/api/simple?q=card:eq:13" )
+		return ctx.get( "/api/simple?q=card:eq:13" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().and.has.length( 1 );

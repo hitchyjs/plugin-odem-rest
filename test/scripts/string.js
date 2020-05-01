@@ -31,39 +31,34 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
-const { start: Start, stop: Stop, query: { get: GET, post: POST, put: PUT } } = require( "hitchy-server-dev-tools" );
+const HitchyDev = require( "hitchy-server-dev-tools" );
 
 require( "should" );
 require( "should-http" );
 
 
 describe( "model containing just a string", () => {
-	let server;
+	const ctx = {};
 
-	before( "starting hitchy server", () => {
-		return Start( {
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			options: {
-				// debug: true,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		options: {
+			// debug: true,
+		},
+	} ) );
 
-	after( "stopping hitchy server", () => Stop( server ) );
+	after( HitchyDev.after( ctx ) );
 
 	it( "is exposed", () => {
-		return GET( "/api/string" )
+		return ctx.get( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 );
 			} );
 	} );
 
 	it( "does not have any record initially", () => {
-		return GET( "/api/string" )
+		return ctx.get( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.empty();
@@ -71,7 +66,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides number of records when setting request header x-count, too", () => {
-		return GET( "/api/string", null, { "x-count": "1" } )
+		return ctx.get( "/api/string", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -82,7 +77,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides number of records when setting query parameter count, too", () => {
-		return GET( "/api/string?count=1" )
+		return ctx.get( "/api/string?count=1" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -93,14 +88,14 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "is creating new record", () => {
-		return POST( "/api/string", { someString: "2018-08-08" } )
+		return ctx.post( "/api/string", { someString: "2018-08-08" } )
 			.then( res => {
 				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
 	it( "lists created record now", () => {
-		return GET( "/api/string" )
+		return ctx.get( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
@@ -111,7 +106,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides updated number of records on setting request header x-count", () => {
-		return GET( "/api/string", null, { "x-count": "1" } )
+		return ctx.get( "/api/string", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -122,7 +117,7 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "provides updated number of records on passing query parameter count", () => {
-		return GET( "/api/string?count=1" )
+		return ctx.get( "/api/string?count=1" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -133,18 +128,18 @@ describe( "model containing just a string", () => {
 	} );
 
 	it( "updates previously created record", () => {
-		return GET( "/api/string" )
+		return ctx.get( "/api/string" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const uuid = res.data.items[0].uuid;
 
-				return PUT( "/api/string/" + uuid, { someString: "2018-09-09" } )
+				return ctx.put( "/api/string/" + uuid, { someString: "2018-09-09" } )
 					.then( res2 => {
 						res2.should.have.status( 200 ).and.be.json();
 
-						return GET( "/api/string" )
+						return ctx.get( "/api/string" )
 							.then( res3 => {
 								res3.should.have.status( 200 ).and.be.json();
 								res3.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();

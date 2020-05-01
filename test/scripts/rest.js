@@ -31,42 +31,30 @@
 const Path = require( "path" );
 
 const { describe, it, before, after } = require( "mocha" );
-const { start, stop, query: {
-	get: GET,
-	post: POST,
-	put: PUT,
-	patch: PATCH,
-	head: HEAD,
-	delete: DELETE,
-} } = require( "hitchy-server-dev-tools" );
+const HitchyDev = require( "hitchy-server-dev-tools" );
 
 require( "should" );
 require( "should-http" );
 
 
 describe( "REST-API", () => {
-	let server;
+	const ctx = {};
 	let uuid1, uuid2;
 
-	before( "starting hitchy server", () => {
-		return start( {
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping hitchy server", () => stop( server ) );
+	after( HitchyDev.after( ctx ) );
 
 
 	describe( "GET /api/mixed", () => {
 		it( "delivers successful result with empty list of matches", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object().which.is.deepEqual( { items: [] } );
@@ -76,7 +64,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "doesn't deliver raw array of matches on demand anymore", () => {
-			return GET( "/api/mixed", null, { "x-list-as-array": "1" } )
+			return ctx.get( "/api/mixed", null, { "x-list-as-array": "1" } )
 				.then( res => {
 					res.should.have.status( 400 ).and.be.json();
 					res.data.should.be.an.Object().which.has.property( "error" ).which.is.a.String().and.not.empty();
@@ -84,7 +72,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "separately provides total number of records, too", () => {
-			return GET( "/api/mixed", null, { "x-count": "1" } )
+			return ctx.get( "/api/mixed", null, { "x-count": "1" } )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 
@@ -97,7 +85,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "doesn't deliver raw array of matches with total number in header on demand anymore", () => {
-			return GET( "/api/mixed", null, { "x-count": "1", "x-list-as-array": "1" } )
+			return ctx.get( "/api/mixed", null, { "x-count": "1", "x-list-as-array": "1" } )
 				.then( res => {
 					res.should.have.status( 400 ).and.be.json();
 					res.data.should.be.an.Object().which.has.property( "error" ).which.is.a.String().and.not.empty();
@@ -107,7 +95,7 @@ describe( "REST-API", () => {
 
 	describe( "POST /api/mixed", () => {
 		it( "creates new record assigning UUID automatically", () => {
-			return POST( "/api/mixed", {
+			return ctx.post( "/api/mixed", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -125,7 +113,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(GETting again returns created record now)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 1 );
@@ -135,7 +123,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "creates another new record every time", () => {
-			return POST( "/api/mixed", {
+			return ctx.post( "/api/mixed", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -155,7 +143,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again returns both created records now)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 2 );
@@ -164,7 +152,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 400 on providing UUID as property of record to create", () => {
-			return POST( "/api/mixed", {
+			return ctx.post( "/api/mixed", {
 				uuid: "12345678-1234-1234-1234-1234567890ab",
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
@@ -181,7 +169,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again still returns both records created before, only)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 2 );
@@ -191,7 +179,7 @@ describe( "REST-API", () => {
 
 	describe( "POST /api/mixed/:uuid", () => {
 		it( "is rejected with 405 when addressing particular item of collection", () => {
-			return POST( "/api/mixed/12345678-1234-1234-12341234567890ab", {
+			return ctx.post( "/api/mixed/12345678-1234-1234-12341234567890ab", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -207,7 +195,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again still returns both records created before, only)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 2 );
@@ -217,7 +205,7 @@ describe( "REST-API", () => {
 
 	describe( "GET /api/mixed/:uuid", () => {
 		it( "fetches properties and UUID of a single existing record", () => {
-			return GET( `/api/mixed/${uuid1}` )
+			return ctx.get( `/api/mixed/${uuid1}` )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
@@ -227,7 +215,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 400 when addressing a collection's entity using malformed UUID", () => {
-			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
+			return ctx.get( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
 				.then( res => {
 					res.should.have.status( 400 ).and.be.json();
 					res.data.should.be.Object().which.have.property( "error" )
@@ -236,7 +224,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 404 when using UUID of missing record", () => {
-			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
+			return ctx.get( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
 				.then( res => {
 					res.should.have.status( 404 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
@@ -247,7 +235,7 @@ describe( "REST-API", () => {
 
 	describe( "PUT /api/mixed", () => {
 		it( "is rejected with 400 when addressing collection", () => {
-			return PUT( "/api/mixed", {
+			return ctx.put( "/api/mixed", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -263,7 +251,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 405 when addressing collection and providing UUID as property of record to create", () => {
-			return PUT( "/api/mixed", {
+			return ctx.put( "/api/mixed", {
 				uuid: "12345678-1234-1234-1234-1234567890ab",
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
@@ -280,7 +268,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again still returns both records created in section before, only)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 2 );
@@ -290,7 +278,7 @@ describe( "REST-API", () => {
 
 	describe( "PUT /api/mixed/:uuid", () => {
 		it( "creates record with explicitly provided UUID", () => {
-			return PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+			return ctx.put( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -306,7 +294,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again returns three records now)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 3 );
@@ -315,7 +303,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "updates now existing record on succeeding calls using same URL", () => {
-			return PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+			return ctx.put( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -331,7 +319,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again still returns the three records created before, only)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 3 );
@@ -340,29 +328,29 @@ describe( "REST-API", () => {
 		} );
 
 		it( "always replaces whole existing record with provided one", () => {
-			return GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return ctx.get( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
 						"uuid", "myDateProp", "myStringProp", "myIntegerProp",
 						"myNumericProp", "myBooleanProp" );
 				} )
-				.then( () => PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+				.then( () => ctx.put( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
 					myIntegerProp: 600,
 				} ) )
-				.then( () => GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
+				.then( () => ctx.get( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 2 ).and.properties( "uuid", "myIntegerProp" );
 				} )
-				.then( () => PUT( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
+				.then( () => ctx.put( "/api/mixed/12345678-1234-1234-1234-1234567890ab", {
 					myDateProp: "2019-08-01",
 					myStringProp: "some text",
 					myIntegerProp: 500,
 					myNumericProp: 2.81,
 					myBooleanProp: true,
 				} ) )
-				.then( () => GET( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
+				.then( () => ctx.get( "/api/mixed/12345678-1234-1234-1234-1234567890ab" ) )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
@@ -374,7 +362,7 @@ describe( "REST-API", () => {
 
 	describe( "PATCH /api/mixed", () => {
 		it( "is rejected with 405 when addressing collection", () => {
-			return PATCH( "/api/mixed", {
+			return ctx.patch( "/api/mixed", {
 				myIntegerProp: 700,
 			} )
 				.then( res => {
@@ -386,7 +374,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 405 when addressing collection and providing UUID as property of record to create", () => {
-			return PATCH( "/api/mixed", {
+			return ctx.patch( "/api/mixed", {
 				uuid: "12345678-1234-1234-1234-1234567890ab",
 				myIntegerProp: 700,
 			} )
@@ -401,7 +389,7 @@ describe( "REST-API", () => {
 
 	describe( "PATCH /api/mixed/:uuid", () => {
 		it( "is rejected with 404 when providing UUID not used with any existing record", () => {
-			return PATCH( "/api/mixed/12345678-1234-1234-1234-1234567890ac", { // <- last character replaced
+			return ctx.patch( "/api/mixed/12345678-1234-1234-1234-1234567890ac", { // <- last character replaced
 				myIntegerProp: 700,
 			} )
 				.then( res => {
@@ -413,7 +401,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "updates existing record using UUID of existing record", () => {
-			return PATCH( `/api/mixed/${uuid1}`, {
+			return ctx.patch( `/api/mixed/${uuid1}`, {
 				myDateProp: "2019-08-01",
 				myStringProp: "some text",
 				myIntegerProp: 500,
@@ -429,7 +417,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "does not add another record on success", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 3 );
@@ -438,14 +426,14 @@ describe( "REST-API", () => {
 		} );
 
 		it( "replaces provided properties of selected record, only", () => {
-			return PATCH( `/api/mixed/${uuid1}` )
+			return ctx.patch( `/api/mixed/${uuid1}` )
 				.then( res => {
 					res.should.have.status( 200 );
 					res.data.should.be.Object().which.has.size( 6 ).and.properties(
 						"uuid", "myDateProp", "myStringProp", "myIntegerProp",
 						"myNumericProp", "myBooleanProp" );
 				} )
-				.then( () => PATCH( `/api/mixed/${uuid1}`, {
+				.then( () => ctx.patch( `/api/mixed/${uuid1}`, {
 					myIntegerProp: 800,
 				} ) )
 				.then( res => {
@@ -454,7 +442,7 @@ describe( "REST-API", () => {
 						"uuid", "myDateProp", "myStringProp", "myIntegerProp",
 						"myNumericProp", "myBooleanProp" );
 				} )
-				.then( () => PATCH( `/api/mixed/${uuid1}`, {
+				.then( () => ctx.patch( `/api/mixed/${uuid1}`, {
 					myDateProp: "2019-08-01",
 					myStringProp: "some text",
 					myIntegerProp: 900,
@@ -472,14 +460,14 @@ describe( "REST-API", () => {
 
 	describe( "HEAD /api/mixed", () => {
 		it( "succeeds when addressing existing collection", () => {
-			return HEAD( "/api/mixed" )
+			return ctx.head( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 );
 				} );
 		} );
 
 		it( "is rejected with 404 when addressing missing collection", () => {
-			return HEAD( "/api/missing" )
+			return ctx.head( "/api/missing" )
 				.then( res => {
 					res.should.have.status( 404 );
 				} );
@@ -488,21 +476,21 @@ describe( "REST-API", () => {
 
 	describe( "HEAD /api/mixed/:uuid", () => {
 		it( "succeeds when using UUID of existing record", () => {
-			return HEAD( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return ctx.head( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
 				.then( res => {
 					res.should.have.status( 200 );
 				} );
 		} );
 
 		it( "is rejected with 400 when addressing a collection's entity using malformed UUID", () => {
-			return HEAD( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
+			return ctx.head( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
 				.then( res => {
 					res.should.have.status( 400 );
 				} );
 		} );
 
 		it( "is rejected with 404 when using UUID of missing record", () => {
-			return HEAD( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
+			return ctx.head( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
 				.then( res => {
 					res.should.have.status( 404 );
 				} );
@@ -511,7 +499,7 @@ describe( "REST-API", () => {
 
 	describe( "DELETE /api/mixed", () => {
 		it( "is rejected with 405 when addressing existing collection", () => {
-			return DELETE( "/api/mixed" )
+			return ctx.delete( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 405 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
@@ -520,7 +508,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 404 when addressing missing collection", () => {
-			return DELETE( "/api/missing" )
+			return ctx.delete( "/api/missing" )
 				.then( res => {
 					res.should.have.status( 404 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
@@ -531,7 +519,7 @@ describe( "REST-API", () => {
 
 	describe( "DELETE /api/mixed/:uuid", () => {
 		it( "succeeds when using UUID of existing record", () => {
-			return DELETE( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return ctx.delete( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "uuid" )
@@ -540,7 +528,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "(thus GETting again returns all but the removed record now)", () => {
-			return GET( "/api/mixed" )
+			return ctx.get( "/api/mixed" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.items.should.be.Array().which.has.length( 2 );
@@ -549,7 +537,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected when using same UUID of previously existing and now missing record again", () => {
-			return DELETE( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
+			return ctx.delete( "/api/mixed/12345678-1234-1234-1234-1234567890ab" )
 				.then( res => {
 					res.should.have.status( 404 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
@@ -558,7 +546,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 400 when addressing a collection's entity using malformed UUID", () => {
-			return DELETE( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
+			return ctx.delete( "/api/mixed/12345678-1234-1234-1234-1234567890a" ) // <- last character removed
 				.then( res => {
 					res.should.have.status( 400 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
@@ -567,7 +555,7 @@ describe( "REST-API", () => {
 		} );
 
 		it( "is rejected with 404 when using UUID of missing record", () => {
-			return DELETE( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
+			return ctx.delete( "/api/mixed/12345678-1234-1234-1234-1234567890ac" ) // <- last character replaced
 				.then( res => {
 					res.should.have.status( 404 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )

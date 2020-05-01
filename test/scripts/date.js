@@ -38,32 +38,27 @@ require( "should-http" );
 
 
 describe( "model containing just a date", () => {
-	let server;
+	const ctx = {};
 
-	before( "starting hitchy server", () => {
-		return HitchyDev.start( {
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			options: {
-				// debug: true,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		options: {
+			// debug: true,
+		},
+	} ) );
 
-	after( "stopping hitchy server", () => HitchyDev.stop( server ) );
+	after( HitchyDev.after( ctx ) );
 
 	it( "is exposed", () => {
-		return HitchyDev.query.get( "/api/date" )
+		return ctx.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 );
 			} );
 	} );
 
 	it( "does not have any record initially", () => {
-		return HitchyDev.query.get( "/api/date" )
+		return ctx.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.empty();
@@ -71,7 +66,7 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "provides number of records on demand, too", () => {
-		return HitchyDev.query.get( "/api/date", null, { "x-count": "1" } )
+		return ctx.get( "/api/date", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -82,14 +77,14 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "is creating new record", () => {
-		return HitchyDev.query.post( "/api/date", { someDate: "2018-08-08" } )
+		return ctx.post( "/api/date", { someDate: "2018-08-08" } )
 			.then( res => {
 				res.should.have.status( 201 ).and.be.json();
 			} );
 	} );
 
 	it( "lists created record now", () => {
-		return HitchyDev.query.get( "/api/date" )
+		return ctx.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
@@ -100,7 +95,7 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "provides updated number of records on demand", () => {
-		return HitchyDev.query.get( "/api/date", null, { "x-count": "1" } )
+		return ctx.get( "/api/date", null, { "x-count": "1" } )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 2 ).and.has.properties( "items", "count" );
@@ -111,18 +106,18 @@ describe( "model containing just a date", () => {
 	} );
 
 	it( "updates previously created record", () => {
-		return HitchyDev.query.get( "/api/date" )
+		return ctx.get( "/api/date" )
 			.then( res => {
 				res.should.have.status( 200 ).and.be.json();
 				res.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
 
 				const uuid = res.data.items[0].uuid;
 
-				return HitchyDev.query.put( "/api/date/" + uuid, { someDate: "2018-09-09" } )
+				return ctx.put( "/api/date/" + uuid, { someDate: "2018-09-09" } )
 					.then( res2 => {
 						res2.should.have.status( 200 ).and.be.json();
 
-						return HitchyDev.query.get( "/api/date" )
+						return ctx.get( "/api/date" )
 							.then( res3 => {
 								res3.should.have.status( 200 ).and.be.json();
 								res3.data.should.be.an.Object().which.has.size( 1 ).and.has.property( "items" ).which.is.an.Array().which.is.not.empty();
