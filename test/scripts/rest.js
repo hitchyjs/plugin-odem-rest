@@ -52,27 +52,85 @@ describe( "REST-API", () => {
 	after( HitchyDev.after( ctx ) );
 
 
-	describe( "GET /api/mixed/schema", () => {
+	describe( "GET /api/.schema", () => {
+		it( "delivers schemata of all promoted models", () => {
+			return ctx.get( "/api/.schema" )
+				.then( res => {
+					res.should.have.status( 200 ).and.be.json();
+					res.data.should.have.properties( "computed-enum", "mixed", "simple", "string" ).and.have.size( 4 );
+
+					res.headers.should.not.have.property( "x-count" );
+
+					res.data.mixed.should.be.an.Object().which.has.size( 3 );
+					res.data.mixed.should.have.property( "props" ).which.is.an.Object();
+					res.data.mixed.should.have.property( "computed" ).which.is.an.Object();
+					res.data.mixed.should.have.property( "name" ).which.is.a.String();
+
+					res.data.mixed.props.should.have.properties( "myIndexedStringProp", "myBooleanProp" ).and.have.size( 8 );
+
+					res.data.string.should.be.an.Object().which.has.size( 3 );
+					res.data.string.should.have.property( "props" ).which.is.an.Object();
+					res.data.string.should.have.property( "computed" ).which.is.an.Object();
+					res.data.string.should.have.property( "name" ).which.is.a.String();
+
+					res.data.string.props.should.have.properties( "someString" ).and.have.size( 1 );
+				} );
+		} );
+
+		it( "works with GET method, only", () => {
+			return ctx.post( "/api/.schema" )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
+
+					return ctx.put( "/api/.schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
+
+					return ctx.delete( "/api/.schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
+
+					return ctx.patch( "/api/.schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
+
+					return ctx.head( "/api/.schema" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					( res.data == null ).should.be.true();
+				} );
+		} );
+	} );
+
+	describe( "GET /api/mixed/.schema", () => {
 		it( "delivers successful result with schema of selected model", () => {
-			return ctx.get( "/api/mixed/schema" )
+			return ctx.get( "/api/mixed/.schema" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object().which.has.size( 3 );
 					res.data.should.have.property( "props" ).which.is.an.Object();
-					res.data.should.have.property( "computed" ).which.is.an.Array();
+					res.data.should.have.property( "computed" ).which.is.an.Object();
 					res.data.should.have.property( "name" ).which.is.a.String();
 
 					res.headers.should.not.have.property( "x-count" );
 
 					Object.keys( res.data.props ).should.be.deepEqual( Object.keys( require( "../project/api/model/mixed" ).props ) );
 
-					return ctx.get( "/api/string/schema" );
+					return ctx.get( "/api/string/.schema" );
 				} )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
 					res.data.should.be.an.Object().which.has.size( 3 );
 					res.data.should.have.property( "props" ).which.is.an.Object();
-					res.data.should.have.property( "computed" ).which.is.an.Array();
+					res.data.should.have.property( "computed" ).which.is.an.Object();
 					res.data.should.have.property( "name" ).which.is.a.String();
 
 					res.headers.should.not.have.property( "x-count" );
@@ -82,41 +140,34 @@ describe( "REST-API", () => {
 		} );
 
 		it( "works with GET, only", () => {
-			return ctx.post( "/api/mixed/schema" )
+			return ctx.post( "/api/mixed/.schema" )
 				.then( res => {
 					res.should.not.have.status( 200 );
-					res.data.should.not.have.property( "props" );
-					res.data.should.not.have.property( "computed" );
-					res.data.should.not.have.property( "name" );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
 
-					return ctx.put( "/api/mixed/schema" );
+					return ctx.put( "/api/mixed/.schema" );
 				} )
 				.then( res => {
 					res.should.not.have.status( 200 );
-					res.data.should.not.have.property( "props" );
-					res.data.should.not.have.property( "computed" );
-					res.data.should.not.have.property( "name" );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
 
-					return ctx.delete( "/api/mixed/schema" );
+					return ctx.delete( "/api/mixed/.schema" );
 				} )
 				.then( res => {
 					res.should.not.have.status( 200 );
-					res.data.should.not.have.property( "props" );
-					res.data.should.not.have.property( "computed" );
-					res.data.should.not.have.property( "name" );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
 
-					return ctx.patch( "/api/mixed/schema" );
+					return ctx.patch( "/api/mixed/.schema" );
 				} )
 				.then( res => {
 					res.should.not.have.status( 200 );
-					res.data.should.not.have.property( "props" );
-					res.data.should.not.have.property( "computed" );
-					res.data.should.not.have.property( "name" );
+					res.data.should.be.Object().which.has.properties( "error" ).and.has.size( 1 );
 
-					return ctx.head( "/api/mixed/schema" );
+					return ctx.head( "/api/mixed/.schema" );
 				} )
 				.then( res => {
 					res.should.not.have.status( 200 );
+					( res.data == null ).should.be.true();
 				} );
 		} );
 	} );

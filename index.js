@@ -32,38 +32,110 @@ const { posix: { resolve } } = require( "path" );
 
 module.exports = function() {
 	const api = this;
+	const { runtime: { services: Services, models: Models }, utility: { case: Case } } = api;
 
 	return {
 		policies() {
-			const source = "ALL " + ( ( this.config.model || {} ).urlPrefix || "/api" );
+			const { config: { model: modelConfig = {} } } = api;
 
-			return {
-				[source]: ( _, res, next ) => {
-					res.setHeader( "Access-Control-Allow-Origin", "*" );
-					next();
-				}
-			};
-		},
-		blueprints() {
-			const { config, runtime: { models }, utility: { case: { pascalToKebab } } } = api;
-
-			const modelNames = Object.keys( models );
-			const routes = new Map();
-			const modelConfig = config.model || {};
 			const urlPrefix = modelConfig.urlPrefix || "/api";
-			const convenience = modelConfig.convenience == null ? true : Boolean( modelConfig.convenience );
+			const modelNames = Object.keys( Models );
+			const before = new Map();
+			const after = new Map();
+
+			before.set( `ALL ${urlPrefix}`, Services.OdemRestCors.getCommonRequestFilter() );
+			after.set( `ALL ${resolve( urlPrefix, ".schema" )}`, reqUnsupported );
 
 			for ( let i = 0, numNames = modelNames.length; i < numNames; i++ ) {
 				const name = modelNames[i];
-				const routeName = pascalToKebab( name );
-				const model = models[name] || {};
+				const routeName = Case.pascalToKebab( name );
+				const model = Models[name] || {};
 
-				addRoutesOnModel( routes, urlPrefix, routeName, model, convenience );
+				if ( Services.OdemRestSchema.mayBeExposed( model ) ) {
+					before.set( `ALL ${resolve( urlPrefix, routeName )}`, Services.OdemRestCors.getRequestFilterForModel( model ) );
+					after.set( `ALL ${resolve( urlPrefix, "model" )}`, reqUnsupported );
+				}
+			}
+
+			return { before, after };
+
+			/**
+			 * Responds with error due to unsupported request.
+			 *
+			 * @param {HitchyIncomingMessage} _ request descriptor
+			 * @param {HitchyServerResponse} res response manager
+			 * @returns {void}
+			 */
+			function reqUnsupported( _, res ) {
+				res.status( 400 ).json( { error: "unsupported request" } );
+			}
+		},
+
+		blueprints() {
+			const modelNames = Object.keys( Models );
+			const routes = new Map();
+			const modelConfig = api.config.model || {};
+			const urlPrefix = modelConfig.urlPrefix || "/api";
+			const convenience = modelConfig.convenience == null ? true : Boolean( modelConfig.convenience );
+
+			addGlobalRoutes( routes, urlPrefix, Models );
+
+			for ( let i = 0, numNames = modelNames.length; i < numNames; i++ ) {
+				const name = modelNames[i];
+				const routeName = Case.pascalToKebab( name );
+				const model = Models[name] || {};
+
+				if ( Services.OdemRestSchema.mayBeExposed( model ) ) {
+					addRoutesOnModel( routes, urlPrefix, routeName, model, convenience );
+				}
 			}
 
 			return routes;
 		},
 	};
+
+	/**
+	 * Adds routes handling common requests not related to particular model.
+	 *
+	 * @param {Map<string,function(req:IncomingMessage,res:ServerResponse):Promise>} routes maps
+	 *        route patterns into function handling requests matching that pattern
+	 * @param {string} urlPrefix common prefix to use on every route regarding any model-related processing
+	 * @param {object<string,class<Model>>} models lists all currently available models
+	 * @returns {void}
+	 */
+	function addGlobalRoutes( routes, urlPrefix, models ) {
+		const { runtime: { services: { Model: BaseModel, OdemRestSchema } }, utility: { case: { pascalToKebab } } } = api;
+
+		routes.set( `GET ${resolve( urlPrefix, ".schema" )}`, reqFetchSchemata );
+
+		/**
+		 * Handles request for listing schemata of all available models.
+		 *
+		 * @param {HitchyIncomingMessage} req request descriptor
+		 * @param {HitchyServerResponse} res response manager
+		 * @returns {void}
+		 */
+		function reqFetchSchemata( req, res ) {
+			const modelKeys = Object.keys( models );
+			const numModels = modelKeys.length;
+
+			const result = {};
+
+			for ( let i = 0; i < numModels; i++ ) {
+				const model = models[modelKeys[i]];
+
+				if ( model.prototype instanceof BaseModel &&
+				     OdemRestSchema.mayBeExposed( model ) &&
+				     OdemRestSchema.mayBePromoted( model ) ) {
+					const slug = pascalToKebab( model.name );
+
+					result[slug] = OdemRestSchema.extractPublicData( model );
+				}
+			}
+
+			res.json( result );
+		}
+	}
 
 	/**
 	 * Adds routes handling common requests related to selected model.
@@ -72,16 +144,16 @@ module.exports = function() {
 	 *        route patterns into function handling requests matching that pattern
 	 * @param {string} urlPrefix common prefix to use on every route regarding any model-related processing
 	 * @param {string} routeName name of model to be used in path name of request
-	 * @param {class<Model>} model model class
+	 * @param {class<Model>} Model model class
 	 * @param {boolean} includeConvenienceRoutes set true to include additional set of routes for controlling all action via GET-requests
 	 * @returns {void}
 	 */
-	function addRoutesOnModel( routes, urlPrefix, routeName, model, includeConvenienceRoutes ) {
-		const { runtime: { services: { Model, OdemUtilityUuid: { ptnUuid } } } } = api;
+	function addRoutesOnModel( routes, urlPrefix, routeName, Model, includeConvenienceRoutes ) {
+		const { Model: BaseModel, OdemRestSchema, OdemUtilityUuid: { ptnUuid } } = Services;
 
 		const modelUrl = resolve( urlPrefix, routeName );
 
-		const reqBadModel = model.prototype instanceof Model ? null : ( _, res ) => {
+		const reqBadModel = Model.prototype instanceof BaseModel ? null : ( _, res ) => {
 			res.status( 500 ).json( { error: "incomplete discovery of model on server-side, looks like hitchy-plugin-odem issue" } );
 		};
 
@@ -94,7 +166,9 @@ module.exports = function() {
 			routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqBadModel || reqRemoveItem );
 		}
 
-		routes.set( "GET " + resolve( modelUrl, "schema" ), reqBadModel || reqFetchSchema );
+		if ( OdemRestSchema.mayBePromoted( Model ) ) {
+			routes.set( "GET " + resolve( modelUrl, ".schema" ), reqBadModel || reqFetchSchema );
+		}
 
 		// here comes the REST-compliant part
 		routes.set( "GET " + resolve( modelUrl ), reqBadModel || reqFetchItems );
@@ -162,14 +236,7 @@ module.exports = function() {
 		function reqFetchSchema( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request fetching schema" );
 
-			const original = model.schema;
-			const copy = {
-				name: model.name,
-				props: original.props,
-				computed: Object.keys( original.computed ),
-			};
-
-			return res.json( copy );
+			return res.json( OdemRestSchema.extractPublicData( Model ) );
 		}
 
 		/**
@@ -189,7 +256,7 @@ module.exports = function() {
 				return undefined;
 			}
 
-			const item = new model( uuid ); // eslint-disable-line new-cap
+			const item = new Model( uuid ); // eslint-disable-line new-cap
 
 			return item.$exists
 				.then( exists => {
@@ -217,7 +284,7 @@ module.exports = function() {
 				return undefined;
 			}
 
-			const item = new model( uuid ); // eslint-disable-line new-cap
+			const item = new Model( uuid ); // eslint-disable-line new-cap
 
 			return item.load()
 				.then( loaded => res.json( loaded.toObject() ) )
@@ -309,7 +376,7 @@ module.exports = function() {
 
 			const meta = count || req.headers["x-count"] ? {} : null;
 
-			return model.find( parsedQuery, { offset, limit, sortBy, sortAscendingly: !descending }, {
+			return Model.find( parsedQuery, { offset, limit, sortBy, sortAscendingly: !descending }, {
 				metaCollector: meta,
 				loadRecords
 			} )
@@ -344,7 +411,7 @@ module.exports = function() {
 
 			const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 			const meta = count || req.headers["x-count"] ? {} : null;
-			return model.list( {
+			return Model.list( {
 				offset,
 				limit,
 				sortBy,
@@ -378,7 +445,7 @@ module.exports = function() {
 		function reqCreateItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request creating item" );
 
-			const item = new model(); // eslint-disable-line new-cap
+			const item = new Model(); // eslint-disable-line new-cap
 
 			return ( req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() )
 				.then( record => {
@@ -392,8 +459,8 @@ module.exports = function() {
 						const names = Object.keys( record );
 						const numNames = names.length;
 
-						const definedProps = model.schema.props;
-						const definedComputed = model.schema.computed;
+						const definedProps = Model.schema.props;
+						const definedComputed = Model.schema.computed;
 
 						for ( let i = 0; i < numNames; i++ ) {
 							const name = names[i];
@@ -433,7 +500,7 @@ module.exports = function() {
 				return undefined;
 			}
 
-			const item = new model( uuid ); // eslint-disable-line new-cap
+			const item = new Model( uuid ); // eslint-disable-line new-cap
 
 			return item.$exists
 				.then( exists => {
@@ -451,8 +518,8 @@ module.exports = function() {
 								const names = Object.keys( record );
 								const numNames = names.length;
 
-								const definedProps = model.schema.props;
-								const definedComputed = model.schema.computed;
+								const definedProps = Model.schema.props;
+								const definedComputed = Model.schema.computed;
 
 								for ( let i = 0; i < numNames; i++ ) {
 									const name = names[i];
@@ -494,15 +561,15 @@ module.exports = function() {
 				return undefined;
 			}
 
-			const item = new model( uuid ); // eslint-disable-line new-cap
+			const item = new Model( uuid ); // eslint-disable-line new-cap
 
 			return Promise.all( [ item.$exists, req.method === "GET" ? Promise.resolve( req.query ) : req.fetchBody() ] )
 				.then( ( [ exists, record ] ) => {
 					return ( exists ? item.load() : Promise.resolve() ).then( () => {
-						const propNames = Object.keys( model.schema.props );
+						const propNames = Object.keys( Model.schema.props );
 						const numPropNames = propNames.length;
 
-						const computedNames = Object.keys( model.schema.computed );
+						const computedNames = Object.keys( Model.schema.computed );
 						const numComputedNames = computedNames.length;
 
 						// drop all properties
@@ -558,7 +625,7 @@ module.exports = function() {
 				return undefined;
 			}
 
-			const item = new model( uuid ); // eslint-disable-line new-cap
+			const item = new Model( uuid ); // eslint-disable-line new-cap
 
 			return item.$exists
 				.then( exists => {

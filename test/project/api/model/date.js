@@ -34,4 +34,7 @@ module.exports = {
 			type: "date",
 		},
 	},
+	options: {
+		promote: false,
+	},
 };
