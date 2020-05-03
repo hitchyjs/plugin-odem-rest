@@ -40,25 +40,49 @@ module.exports = function() {
 		/**
 		 * Detects if selected model's schema may be promoted to clients or not.
 		 *
+		 * @param {HitchyIncomingMessage} request request descriptor
 		 * @param {class<Model>} model class of model to check
 		 * @returns {boolean} true if model's schema may be promoted to clients, false otherwise
 		 */
-		static mayBePromoted( model ) {
+		static mayBePromoted( request, model ) {
 			const { schema: { options } } = model;
 
-			return options.promote !== false;
+			const scope = String( options.promote || options.expose || "public" ).trim().toLowerCase();
+
+			switch ( scope ) {
+				case "public" :
+					return true;
+
+				case "protected" :
+					return Boolean( request.user );
+
+				default :
+					return false;
+			}
 		}
 
 		/**
 		 * Detects if selected model may be exposed to clients or not.
 		 *
+		 * @param {HitchyIncomingMessage} request request descriptor
 		 * @param {class<Model>} model class of model to check
 		 * @returns {boolean} true if model may be exposed to clients, false otherwise
 		 */
-		static mayBeExposed( model ) {
+		static mayBeExposed( request, model ) {
 			const { schema: { options } } = model;
 
-			return options.expose !== false;
+			const scope = String( options.expose || "public" ).trim().toLowerCase();
+
+			switch ( scope ) {
+				case "public" :
+					return true;
+
+				case "protected" :
+					return Boolean( request.user );
+
+				default :
+					return false;
+			}
 		}
 
 		/**

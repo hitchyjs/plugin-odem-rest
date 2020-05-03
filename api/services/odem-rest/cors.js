@@ -29,6 +29,8 @@
 "use strict";
 
 module.exports = function() {
+	const Services = this.runtime.services;
+
 	/**
 	 * Handles CORS-related behaviours.
 	 *
@@ -56,8 +58,11 @@ module.exports = function() {
 		 * @returns {HitchyRequestPolicyHandler} generated function suitable for registering as routing policy handler
 		 */
 		static getRequestFilterForModel( model ) { // eslint-disable-line no-unused-vars
-			return ( _, res, next ) => {
-				res.setHeader( "Access-Control-Allow-Origin", "*" );
+			return ( req, res, next ) => {
+				if ( Services.OdemRestSchema.mayBeExposed( req, model ) ) {
+					res.setHeader( "Access-Control-Allow-Origin", "*" );
+				}
+
 				next();
 			};
 		}

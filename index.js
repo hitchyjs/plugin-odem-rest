@@ -37,37 +37,38 @@ module.exports = function() {
 	return {
 		policies() {
 			const { config: { model: modelConfig = {} } } = api;
+			const CORS = Services.OdemRestCors;
 
 			const urlPrefix = modelConfig.urlPrefix || "/api";
 			const modelNames = Object.keys( Models );
 			const before = new Map();
 			const after = new Map();
 
-			before.set( `ALL ${urlPrefix}`, Services.OdemRestCors.getCommonRequestFilter() );
-			after.set( `ALL ${resolve( urlPrefix, ".schema" )}`, reqUnsupported );
+			before.set( `ALL ${urlPrefix}`, CORS.getCommonRequestFilter() );
+			after.set( `ALL ${resolve( urlPrefix, ".schema" )}`, reqNotSupported );
 
 			for ( let i = 0, numNames = modelNames.length; i < numNames; i++ ) {
 				const name = modelNames[i];
 				const routeName = Case.pascalToKebab( name );
 				const model = Models[name] || {};
 
-				if ( Services.OdemRestSchema.mayBeExposed( model ) ) {
-					before.set( `ALL ${resolve( urlPrefix, routeName )}`, Services.OdemRestCors.getRequestFilterForModel( model ) );
-					after.set( `ALL ${resolve( urlPrefix, "model" )}`, reqUnsupported );
-				}
+				before.set( `ALL ${resolve( urlPrefix, routeName )}`, CORS.getRequestFilterForModel( model ) );
+				after.set( `ALL ${resolve( urlPrefix, routeName )}`, reqNotSupported );
 			}
 
 			return { before, after };
 
 			/**
-			 * Responds with error due to unsupported request.
+			 * Responds on failure in case of not having handled request before.
 			 *
-			 * @param {HitchyIncomingMessage} _ request descriptor
+			 * @param {HitchyIncomingMessage} req request descriptor
 			 * @param {HitchyServerResponse} res response manager
 			 * @returns {void}
 			 */
-			function reqUnsupported( _, res ) {
-				res.status( 400 ).json( { error: "unsupported request" } );
+			function reqNotSupported( req, res ) {
+				if ( !res.headersSent ) {
+					res.status( 400 ).json( { error: "unsupported request" } );
+				}
 			}
 		},
 
@@ -85,10 +86,11 @@ module.exports = function() {
 				const routeName = Case.pascalToKebab( name );
 				const model = Models[name] || {};
 
-				if ( Services.OdemRestSchema.mayBeExposed( model ) ) {
-					addRoutesOnModel( routes, urlPrefix, routeName, model, convenience );
-				}
+				addRoutesOnModel( routes, urlPrefix, routeName, model, convenience );
 			}
+
+			routes.set( "HEAD " + resolve( urlPrefix, ":model" ), ( _, res ) => res.status( 404 ).send() );
+			routes.set( "DELETE " + resolve( urlPrefix, ":model" ), ( _, res ) => res.status( 404 ).json( { error: "no such collection" } ) );
 
 			return routes;
 		},
@@ -125,8 +127,8 @@ module.exports = function() {
 				const model = models[modelKeys[i]];
 
 				if ( model.prototype instanceof BaseModel &&
-				     OdemRestSchema.mayBeExposed( model ) &&
-				     OdemRestSchema.mayBePromoted( model ) ) {
+				     OdemRestSchema.mayBeExposed( req, model ) &&
+				     OdemRestSchema.mayBePromoted( req, model ) ) {
 					const slug = pascalToKebab( model.name );
 
 					result[slug] = OdemRestSchema.extractPublicData( model );
@@ -149,7 +151,7 @@ module.exports = function() {
 	 * @returns {void}
 	 */
 	function addRoutesOnModel( routes, urlPrefix, routeName, Model, includeConvenienceRoutes ) {
-		const { Model: BaseModel, OdemRestSchema, OdemUtilityUuid: { ptnUuid } } = Services;
+		const { Model: BaseModel, OdemRestSchema: Schema, OdemUtilityUuid: { ptnUuid } } = Services;
 
 		const modelUrl = resolve( urlPrefix, routeName );
 
@@ -166,9 +168,7 @@ module.exports = function() {
 			routes.set( "GET " + resolve( modelUrl, "remove", ":uuid" ), reqBadModel || reqRemoveItem );
 		}
 
-		if ( OdemRestSchema.mayBePromoted( Model ) ) {
-			routes.set( "GET " + resolve( modelUrl, ".schema" ), reqBadModel || reqFetchSchema );
-		}
+		routes.set( "GET " + resolve( modelUrl, ".schema" ), reqBadModel || reqFetchSchema );
 
 		// here comes the REST-compliant part
 		routes.set( "GET " + resolve( modelUrl ), reqBadModel || reqFetchItems );
@@ -176,7 +176,6 @@ module.exports = function() {
 
 		routes.set( "HEAD " + resolve( modelUrl, ":uuid" ), reqBadModel || reqCheckItem );
 		routes.set( "HEAD " + resolve( modelUrl ), reqBadModel || reqSuccess );
-		routes.set( "HEAD " + resolve( urlPrefix, ":model" ), reqBadModel || reqNotFound );
 
 		routes.set( "POST " + resolve( modelUrl, ":uuid" ), reqBadModel || reqError( 405, "new entry can not be created with uuid" ) );
 		routes.set( "POST " + resolve( modelUrl ), reqBadModel || reqCreateItem );
@@ -188,29 +187,21 @@ module.exports = function() {
 
 		routes.set( "DELETE " + resolve( modelUrl, ":uuid" ), reqBadModel || reqRemoveItem );
 		routes.set( "DELETE " + resolve( modelUrl ), reqBadModel || reqError( 405, "DELETE is not permitted on collections" ) );
-		routes.set( "DELETE " + resolve( urlPrefix, ":model" ), reqBadModel || reqError( 404, "no such collection" ) );
 
 
 		/**
 		 * Responds on success.
 		 *
-		 * @param {IncomingMessage} _ not used
-		 * @param {ServerResponse} res response manager
+		 * @param {HitchyIncomingMessage} req request descriptor
+		 * @param {HitchyServerResponse} res response manager
 		 * @returns {void}
 		 */
-		function reqSuccess( _, res ) {
-			res.status( 200 ).send();
-		}
-
-		/**
-		 * Responds with error due to entity not found.
-		 *
-		 * @param {IncomingMessage} _ not used
-		 * @param {ServerResponse} res response manager
-		 * @returns {void}
-		 */
-		function reqNotFound( _, res ) {
-			res.status( 404 ).send();
+		function reqSuccess( req, res ) {
+			if ( Services.OdemRestSchema.mayBeExposed( req, Model ) ) {
+				res.status( 200 ).send();
+			} else {
+				res.status( 403 ).send();
+			}
 		}
 
 		/**
@@ -229,26 +220,36 @@ module.exports = function() {
 		/**
 		 * Handles request for fetching schema of selected model.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {void}
 		 */
 		function reqFetchSchema( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request fetching schema" );
 
-			return res.json( OdemRestSchema.extractPublicData( Model ) );
+			if ( !Services.OdemRestSchema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return;
+			}
+
+			res.json( Schema.extractPublicData( Model ) );
 		}
 
 		/**
 		 * Handles request for checking whether some selected item of model exists
 		 * or not.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqCheckItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request checking if some item exists" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -271,12 +272,17 @@ module.exports = function() {
 		/**
 		 * Handles request for fetching data of selected item.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
 		 * @returns {Promise} promises request processed successfully
 		 */
 		function reqFetchItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request fetching some item" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -306,12 +312,18 @@ module.exports = function() {
 		 * Fetches items of a collection optionally required to match some provided
 		 * query.
 		 *
-		 * @param {IncomingMessage} req incoming request
-		 * @param {ServerResponse} res response controller
+		 * @param {HitchyIncomingMessage} req incoming request
+		 * @param {HitchyServerResponse} res response controller
 		 * @returns {Promise} promises response sent
 		 */
 		function reqFetchItems( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request fetching items" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
+
 			if ( req.headers["x-list-as-array"] ) {
 				res.status( 400 ).json( { error: "fetching items as array is deprecated for security reasons" } );
 				return undefined;
@@ -328,6 +340,7 @@ module.exports = function() {
 		 */
 		function parseQuery( query ) {
 			const simpleTernary = /^([^:\s]+):between:([^:]+):([^:]+)$/i.exec( query );
+
 			if ( simpleTernary ) {
 				const [ , name, lower, upper ] = simpleTernary;
 
@@ -354,12 +367,17 @@ module.exports = function() {
 		/**
 		 * Handles request for listing all items of model.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
 		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqListMatches( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request listing matching items" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { q: query = "", offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 
@@ -402,12 +420,17 @@ module.exports = function() {
 		 * Handles request for listing all items of model matching single given
 		 * condition.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqListAll( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request listing all items" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { offset = 0, limit = Infinity, sortBy = null, descending = false, loadRecords = true, count = false } = req.query;
 			const meta = count || req.headers["x-count"] ? {} : null;
@@ -438,12 +461,17 @@ module.exports = function() {
 		/**
 		 * Handles request for adding new item.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqCreateItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request creating item" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const item = new Model(); // eslint-disable-line new-cap
 
@@ -487,12 +515,17 @@ module.exports = function() {
 		/**
 		 * Handles request for updating properties of a selected item.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqModifyItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request to modify some item" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -548,12 +581,17 @@ module.exports = function() {
 		/**
 		 * Handles request for updating properties of a selected item.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqReplaceItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request replacing some item" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
@@ -612,12 +650,17 @@ module.exports = function() {
 		/**
 		 * Handles request for removing selected item.
 		 *
-		 * @param {IncomingMessage} req description of request
-		 * @param {ServerResponse} res API for creating response
-		 * @returns {Promise} promises request processed successfully
+		 * @param {HitchyIncomingMessage} req description of request
+		 * @param {HitchyServerResponse} res API for creating response
+		 * @returns {Promise|undefined} promises request processed successfully
 		 */
 		function reqRemoveItem( req, res ) {
 			this.api.log( "hitchy:odem:rest" )( "got request removing some item" );
+
+			if ( !Schema.mayBeExposed( req, Model ) ) {
+				res.status( 403 ).json( { error: "access forbidden by model" } );
+				return undefined;
+			}
 
 			const { uuid } = req.params;
 			if ( !ptnUuid.test( uuid ) ) {
