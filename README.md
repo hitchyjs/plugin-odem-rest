@@ -53,7 +53,7 @@ module.exports = {
 	},
 	computed: {
 		fullName() {
-			return `${this.lastName}, ${this.firsName}`;
+			return `${this.lastName}, ${this.firstName}`;
 		}
 	},
 };
@@ -103,9 +103,16 @@ The provided routes implement these actions:
 | HEAD | `/api/model` | Tests if selected model exists. |
 | HEAD | `/api/model/<uuid>` | Tests if selected item exists. |
 
+In addition following URLs are available for accessing schema information:
+
+| Method | URL | Action |
+|---|---|---|
+| GET | `/api/.schema` | Lists schemata of all published models. |
+| GET | `/api/model/.schema` | Fetches schema of selected model. |
+
 The API is accepting and returning data in JSON format. Any returned data is always an object. When fetching items this object contains single property `items` containing all fetched items as array.
 
-Response status code is used to indicate basic result of either requests.
+Response status code indicates basic result of either requests.
 
 | Status | Reason |
 |---|---|
@@ -136,7 +143,7 @@ All request data is provided in query parameters instead of request body for GET
 
 #### Disabling Feature
 
-This feature may be disabled using configuration in file **config/model.js** exposing configuration like this one:
+Disable this feature in the configuration file **config/model.js**:
 
 ```javascript
 exports.model = {
