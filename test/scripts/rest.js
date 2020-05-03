@@ -53,11 +53,11 @@ describe( "REST-API", () => {
 
 
 	describe( "GET /api/.schema", () => {
-		it( "delivers schemata of all promoted models", () => {
+		it( "delivers schemata of all publicly promoted models", () => {
 			return ctx.get( "/api/.schema" )
 				.then( res => {
 					res.should.have.status( 200 ).and.be.json();
-					res.data.should.have.properties( "computed-enum", "mixed", "simple", "string" ).and.have.size( 4 );
+					res.data.should.have.properties( "computed-enum", "mixed", "string" ).and.have.size( 3 );
 
 					res.headers.should.not.have.property( "x-count" );
 
@@ -135,7 +135,18 @@ describe( "REST-API", () => {
 
 					res.headers.should.not.have.property( "x-count" );
 
-					Object.keys( res.data.props ).should.be.deepEqual( Object.keys( require( "../project/api/model/string" ).props ) );
+					return ctx.get( "/api/date/.schema" );
+				} )
+				.then( res => {
+					res.should.have.status( 200 ).and.be.json();
+					res.data.should.be.an.Object().which.has.size( 3 );
+					res.data.should.have.property( "props" ).which.is.an.Object();
+					res.data.should.have.property( "computed" ).which.is.an.Object();
+					res.data.should.have.property( "name" ).which.is.a.String();
+
+					res.headers.should.not.have.property( "x-count" );
+
+					Object.keys( res.data.props ).should.be.deepEqual( Object.keys( require( "../project/api/model/date" ).props ) );
 				} );
 		} );
 
@@ -680,6 +691,142 @@ describe( "REST-API", () => {
 					res.should.have.status( 404 ).and.be.json();
 					res.data.should.be.Object().which.has.property( "error" )
 						.which.is.String().and.not.empty();
+				} );
+		} );
+	} );
+
+	describe( "A private model", () => {
+		it( "can't be accessed", () => {
+			return ctx.get( "/api/secret" )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/secret" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+
+					return ctx.post( "/api/secret", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 201 );
+					res.should.be.json();
+
+					return ctx.put( "/api/secret/12345678-1234-1234-1234-123456789012", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.get( "/api/secret/12345678-1234-1234-1234-123456789012" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.patch( "/api/secret/12345678-1234-1234-1234-123456789012", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/secret/12345678-1234-1234-1234-123456789012" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+
+					return ctx.delete( "/api/secret/12345678-1234-1234-1234-123456789012" );
+				} );
+		} );
+	} );
+
+	describe( "A protected model", () => {
+		it( "can't be accessed without authentication", () => {
+			return ctx.get( "/api/protected" )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/protected" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+
+					return ctx.post( "/api/protected", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 201 );
+					res.should.be.json();
+
+					return ctx.put( "/api/protected/12345678-1234-1234-1234-123456789012", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.get( "/api/protected/12345678-1234-1234-1234-123456789012" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.patch( "/api/protected/12345678-1234-1234-1234-123456789012", {} );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/protected/12345678-1234-1234-1234-123456789012" );
+				} )
+				.then( res => {
+					res.should.not.have.status( 200 );
+
+					return ctx.delete( "/api/secret/12345678-1234-1234-1234-123456789012" );
+				} );
+		} );
+
+		it( "can be accessed with authentication", () => {
+			return ctx.get( "/api/protected?user=john.doe" )
+				.then( res => {
+					res.should.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/protected?user=john.doe" );
+				} )
+				.then( res => {
+					res.should.have.status( 200 );
+
+					return ctx.post( "/api/protected?user=john.doe", {} );
+				} )
+				.then( res => {
+					res.should.have.status( 201 );
+					res.should.be.json();
+
+					return ctx.put( "/api/protected/12345678-1234-1234-1234-123456789012?user=john.doe", {} );
+				} )
+				.then( res => {
+					res.should.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.get( "/api/protected/12345678-1234-1234-1234-123456789012?user=john.doe" );
+				} )
+				.then( res => {
+					res.should.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.patch( "/api/protected/12345678-1234-1234-1234-123456789012?user=john.doe", {} );
+				} )
+				.then( res => {
+					res.should.have.status( 200 );
+					res.should.be.json();
+
+					return ctx.head( "/api/protected/12345678-1234-1234-1234-123456789012?user=john.doe" );
+				} )
+				.then( res => {
+					res.should.have.status( 200 );
+
+					return ctx.delete( "/api/secret/12345678-1234-1234-1234-123456789012?user=john.doe" );
 				} );
 		} );
 	} );

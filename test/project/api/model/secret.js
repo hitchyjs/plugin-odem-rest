@@ -30,11 +30,11 @@
 
 module.exports = {
 	props: {
-		someDate: {
-			type: "date",
+		token: {
+			type: "string",
 		},
 	},
 	options: {
-		promote: "private",
+		expose: "private",
 	},
 };

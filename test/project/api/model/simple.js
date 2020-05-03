@@ -37,7 +37,9 @@ module.exports = {
 			required: true
 		},
 	},
-	options: {},
+	options: {
+		promote: "protected"
+	},
 	computed: {},
 	methods: {},
 	hooks: {},

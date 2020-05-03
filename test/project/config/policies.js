@@ -1,9 +1,9 @@
 /**
- * (c) 2018 cepharum GmbH, Berlin, http://cepharum.de
+ * (c) 2020 cepharum GmbH, Berlin, http://cepharum.de
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 cepharum GmbH
+ * Copyright (c) 2020 cepharum GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,13 @@
 
 "use strict";
 
-module.exports = {
-	props: {
-		someDate: {
-			type: "date",
-		},
-	},
-	options: {
-		promote: "private",
+exports.policies = {
+	"ALL /": ( req, res, next ) => {
+		// fake authentication on demand
+		if ( req.query.user ) {
+			req.user = true;
+		}
+
+		next();
 	},
 };
