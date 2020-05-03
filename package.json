@@ -23,7 +23,7 @@
 	"homepage": "https://github.com/hitchyjs/plugin-odem-rest#readme",
 	"peerDependencies": {
 		"hitchy": "^0.6.3",
-		"hitchy-plugin-odem": "^0.5.5"
+		"hitchy-plugin-odem": "^0.5.6"
 	},
 	"devDependencies": {
 		"eslint": "^6.8.0",
