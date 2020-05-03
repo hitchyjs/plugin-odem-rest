@@ -4,7 +4,7 @@
 	"description": "common hitchy extension adding support for odem",
 	"main": "index.js",
 	"scripts": {
-		"style": "eslint .",
+		"lint": "eslint .",
 		"test": "hitchy-pm odem --exec mocha --ui=tdd test/**/*.js"
 	},
 	"repository": {
