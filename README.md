@@ -1,3 +1,7 @@
+# [Hitchy](https://core.hitchy.org) has [moved its repositories](https://gitlab.com/hitchy) incl. [this one](https://gitlab.com/hitchy/plugin-odem-rest).
+
+---
+
 # plugin-odem-rest
 
 exposing RESTful access on Hitchy's ODM
